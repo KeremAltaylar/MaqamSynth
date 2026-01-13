@@ -84,6 +84,7 @@ const MaqamSynth = () => {
   const [currentMaqam, setCurrentMaqam] = useState('Rast');
   const [maqamNotes, setMaqamNotes] = useState([]);
   const [rootNoteOffset, setRootNoteOffset] = useState(0);
+  const currentMaqamScaleLength = (tMaqamsIntervals[currentMaqam]?.length || 0) + 1;
 
   // Keep track of currently pressed keys to handle sustained notes
   const activeNotes = useRef(new Map()); // Map: key -> frequency
@@ -202,9 +203,12 @@ const MaqamSynth = () => {
 
   // --- Keyboard Event Listeners ---
   useEffect(() => {
-    const baseOctaveKeys = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ş'];
-    const octaveDownKeys = ['z', 'x', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç'];
-    const octaveUpKeys = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'ı', 'o'];
+    const upKeyPool = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'ı', 'o', 'p', 'ğ', 'ü'];
+    const baseKeyPool = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ş', 'i', ','];
+    const downKeyPool = ['z', 'x', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç', '.'];
+    const baseOctaveKeys = baseKeyPool.slice(0, currentMaqamScaleLength);
+    const octaveDownKeys = downKeyPool.slice(0, Math.min(currentMaqamScaleLength, downKeyPool.length));
+    const octaveUpKeys = upKeyPool.slice(0, Math.min(currentMaqamScaleLength, upKeyPool.length));
 
     const handleKeyDown = (e) => {
       const key = e.key.toLowerCase();
@@ -213,8 +217,6 @@ const MaqamSynth = () => {
         return;
       }
       e.preventDefault(); // Prevent default browser actions for synth keys
-
-      const currentMaqamScaleLength = tMaqamsIntervals[currentMaqam]?.length + 1;
 
       let baseKeyIndex = -1;
       let octaveSlot = -1; // -1 for octave down keys, 0 for base keys, 1 for octave up keys (relative to fullMaqamScale generation)
@@ -260,7 +262,7 @@ const MaqamSynth = () => {
       // Clear any remaining active notes when component unmounts
       activeNotes.current.clear();
     };
-  }, [maqamNotes, currentMaqam, triggerAttack, triggerRelease]); // Added triggerAttack/Release to dependencies
+  }, [maqamNotes, currentMaqam, triggerAttack, triggerRelease, currentMaqamScaleLength]); // Added triggerAttack/Release to dependencies
 
   return (
     <div className="maqam-synth-container">
@@ -293,7 +295,11 @@ const MaqamSynth = () => {
         frequencyToNoteName={frequencyToNoteName} 
         activeNotes={activeNotes.current}
       />
-      <KeyboardInfo />
+      <KeyboardInfo 
+        upKeys={['q', 'w', 'e', 'r', 't', 'y', 'u', 'ı', 'o', 'p', 'ğ', 'ü'].slice(0, Math.min(currentMaqamScaleLength, 12))}
+        baseKeys={['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ş', 'i', ','].slice(0, Math.min(currentMaqamScaleLength, 12))}
+        downKeys={['z', 'x', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç', '.'].slice(0, Math.min(currentMaqamScaleLength, 10))}
+      />
     </div>
   );
 };
