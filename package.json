@@ -1,5 +1,6 @@
 {
   "name": "turkish-maqam-synth",
+  "homepage": "https://KeremAltaylar.github.io/MaqamSynth",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
