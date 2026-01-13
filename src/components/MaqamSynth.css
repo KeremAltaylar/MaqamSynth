@@ -233,3 +233,8 @@ h1 {
   color: var(--text-color);
   margin: 0 2px;
 }
+
+.keyboard-info kbd.active {
+  background-color: var(--accent-color);
+  color: white;
+}

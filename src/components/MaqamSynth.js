@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as Tone from 'tone';
 import SynthControls from './SynthControls';
-import KeyboardInfo from './KeyboardInfo';
 import MaqamNoteDisplay from './MaqamNoteDisplay';
 import './MaqamSynth.css';
 
@@ -85,6 +84,22 @@ const MaqamSynth = () => {
   const [maqamNotes, setMaqamNotes] = useState([]);
   const [rootNoteOffset, setRootNoteOffset] = useState(0);
   const currentMaqamScaleLength = (tMaqamsIntervals[currentMaqam]?.length || 0) + 1;
+  const [activeKeys, setActiveKeys] = useState(new Set());
+  const [activeFreqs, setActiveFreqs] = useState(new Set());
+  const upKeyPool = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'ı', 'o', 'p', 'ğ', 'ü'];
+  const baseKeyPool = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ş', 'i', ','];
+  const downKeyPool = ['z', 'x', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç', '.'];
+  const baseOctaveKeys = React.useMemo(() => baseKeyPool.slice(0, currentMaqamScaleLength), [currentMaqamScaleLength]);
+  const octaveDownKeys = React.useMemo(() => downKeyPool.slice(0, Math.min(currentMaqamScaleLength, downKeyPool.length)), [currentMaqamScaleLength]);
+  const octaveUpKeys = React.useMemo(() => upKeyPool.slice(0, Math.min(currentMaqamScaleLength, upKeyPool.length)), [currentMaqamScaleLength]);
+  const buildMappings = React.useCallback((keys, octaveSlot) => keys.map((k, i) => {
+    const idx = (octaveSlot * currentMaqamScaleLength) + i;
+    const freq = maqamNotes[idx];
+    return { key: k, freq, name: freq ? frequencyToNoteName(freq) : '', index: idx };
+  }), [maqamNotes, currentMaqamScaleLength]);
+  const upMappings = React.useMemo(() => buildMappings(octaveUpKeys, 2), [octaveUpKeys, buildMappings]);
+  const baseMappings = React.useMemo(() => buildMappings(baseOctaveKeys, 1), [baseOctaveKeys, buildMappings]);
+  const downMappings = React.useMemo(() => buildMappings(octaveDownKeys, 0), [octaveDownKeys, buildMappings]);
 
   // Keep track of currently pressed keys to handle sustained notes
   const activeNotes = useRef(new Map()); // Map: key -> frequency
@@ -187,9 +202,19 @@ const MaqamSynth = () => {
 
   // --- Play/Release Notes ---
   const triggerAttack = useCallback((frequency, key) => {
-    if (synth.current && !activeNotes.current.has(key)) { // Only attack if not already playing
+    if (synth.current && !activeNotes.current.has(key)) {
       synth.current.triggerAttack(frequency);
       activeNotes.current.set(key, frequency);
+      setActiveKeys(prev => {
+        const s = new Set(prev);
+        s.add(key);
+        return s;
+      });
+      setActiveFreqs(prev => {
+        const s = new Set(prev);
+        s.add(frequency);
+        return s;
+      });
     }
   }, []);
 
@@ -198,22 +223,29 @@ const MaqamSynth = () => {
       const frequency = activeNotes.current.get(key);
       synth.current.triggerRelease(frequency);
       activeNotes.current.delete(key);
+      setActiveKeys(prev => {
+        const s = new Set(prev);
+        s.delete(key);
+        return s;
+      });
+      setActiveFreqs(prev => {
+        const s = new Set(prev);
+        s.delete(frequency);
+        return s;
+      });
     }
   }, []);
 
   // --- Keyboard Event Listeners ---
   useEffect(() => {
-    const upKeyPool = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'ı', 'o', 'p', 'ğ', 'ü'];
-    const baseKeyPool = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ş', 'i', ','];
-    const downKeyPool = ['z', 'x', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç', '.'];
-    const baseOctaveKeys = baseKeyPool.slice(0, currentMaqamScaleLength);
-    const octaveDownKeys = downKeyPool.slice(0, Math.min(currentMaqamScaleLength, downKeyPool.length));
-    const octaveUpKeys = upKeyPool.slice(0, Math.min(currentMaqamScaleLength, upKeyPool.length));
+    const baseOctaveKeysLocal = baseOctaveKeys;
+    const octaveDownKeysLocal = octaveDownKeys;
+    const octaveUpKeysLocal = octaveUpKeys;
 
     const handleKeyDown = (e) => {
       const key = e.key.toLowerCase();
       // Only process keys if they are part of our synth mapping
-      if (![...baseOctaveKeys, ...octaveDownKeys, ...octaveUpKeys].includes(key)) {
+      if (![...baseOctaveKeysLocal, ...octaveDownKeysLocal, ...octaveUpKeysLocal].includes(key)) {
         return;
       }
       e.preventDefault(); // Prevent default browser actions for synth keys
@@ -221,14 +253,14 @@ const MaqamSynth = () => {
       let baseKeyIndex = -1;
       let octaveSlot = -1; // -1 for octave down keys, 0 for base keys, 1 for octave up keys (relative to fullMaqamScale generation)
 
-      if (baseOctaveKeys.includes(key)) {
-        baseKeyIndex = baseOctaveKeys.indexOf(key);
+      if (baseOctaveKeysLocal.includes(key)) {
+        baseKeyIndex = baseOctaveKeysLocal.indexOf(key);
         octaveSlot = 1; // Corresponds to the *second* octave generated in fullMaqamScale (index 1)
-      } else if (octaveDownKeys.includes(key)) {
-        baseKeyIndex = octaveDownKeys.indexOf(key);
+      } else if (octaveDownKeysLocal.includes(key)) {
+        baseKeyIndex = octaveDownKeysLocal.indexOf(key);
         octaveSlot = 0; // Corresponds to the *first* octave generated in fullMaqamScale (index 0)
-      } else if (octaveUpKeys.includes(key)) {
-        baseKeyIndex = octaveUpKeys.indexOf(key);
+      } else if (octaveUpKeysLocal.includes(key)) {
+        baseKeyIndex = octaveUpKeysLocal.indexOf(key);
         octaveSlot = 2; // Corresponds to the *third* octave generated in fullMaqamScale (index 2)
       }
 
@@ -259,10 +291,11 @@ const MaqamSynth = () => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
-      // Clear any remaining active notes when component unmounts
       activeNotes.current.clear();
+      setActiveKeys(new Set());
+      setActiveFreqs(new Set());
     };
-  }, [maqamNotes, currentMaqam, triggerAttack, triggerRelease, currentMaqamScaleLength]); // Added triggerAttack/Release to dependencies
+  }, [maqamNotes, currentMaqam, triggerAttack, triggerRelease, currentMaqamScaleLength, baseOctaveKeys, octaveDownKeys, octaveUpKeys]);
 
   return (
     <div className="maqam-synth-container">
@@ -291,14 +324,10 @@ const MaqamSynth = () => {
         setReverbAmount={setReverbAmount}
       />
       <MaqamNoteDisplay 
-        maqamNotes={maqamNotes} 
-        frequencyToNoteName={frequencyToNoteName} 
-        activeNotes={activeNotes.current}
-      />
-      <KeyboardInfo 
-        upKeys={['q', 'w', 'e', 'r', 't', 'y', 'u', 'ı', 'o', 'p', 'ğ', 'ü'].slice(0, Math.min(currentMaqamScaleLength, 12))}
-        baseKeys={['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ş', 'i', ','].slice(0, Math.min(currentMaqamScaleLength, 12))}
-        downKeys={['z', 'x', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç', '.'].slice(0, Math.min(currentMaqamScaleLength, 10))}
+        upMappings={upMappings}
+        baseMappings={baseMappings}
+        downMappings={downMappings}
+        activeFreqs={activeFreqs}
       />
     </div>
   );

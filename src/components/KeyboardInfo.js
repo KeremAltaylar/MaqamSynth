@@ -1,11 +1,23 @@
 import React from 'react';
 
-const KeyboardInfo = ({ baseKeys = [], downKeys = [], upKeys = [] }) => {
+const KeyboardInfo = ({ upMappings = [], baseMappings = [], downMappings = [], activeKeysSet = new Set() }) => {
   return (
     <div className="keyboard-info">
-      <p>Base Octave: {baseKeys.map(k => <kbd key={`b-${k}`}>{k}</kbd>)}</p>
-      <p>Octave Down: {downKeys.map(k => <kbd key={`d-${k}`}>{k}</kbd>)}</p>
-      <p>Octave Up: {upKeys.map(k => <kbd key={`u-${k}`}>{k}</kbd>)}</p>
+      <p>
+        Octave Up: {upMappings.map(({ key, name }) => (
+          <kbd key={`u-${key}`} className={activeKeysSet.has(key) ? 'active' : ''}>{key} {name && `(${name})`}</kbd>
+        ))}
+      </p>
+      <p>
+        Base Octave: {baseMappings.map(({ key, name }) => (
+          <kbd key={`b-${key}`} className={activeKeysSet.has(key) ? 'active' : ''}>{key} {name && `(${name})`}</kbd>
+        ))}
+      </p>
+      <p>
+        Octave Down: {downMappings.map(({ key, name }) => (
+          <kbd key={`d-${key}`} className={activeKeysSet.has(key) ? 'active' : ''}>{key} {name && `(${name})`}</kbd>
+        ))}
+      </p>
     </div>
   );
 };

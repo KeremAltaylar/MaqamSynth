@@ -1,26 +1,29 @@
 import React from 'react';
 
-const MaqamNoteDisplay = ({ maqamNotes, frequencyToNoteName, activeNotes = new Map() }) => {
+const Row = ({ mappings = [], activeFreqs = new Set() }) => {
   return (
-    <div className="note-display-section">
-      <h2>Maqam Notes:</h2>
-      <div className="note-grid">
-        {maqamNotes.map((note, index) => {
-          // Check if this note frequency is currently being played
-          const isActive = Array.from(activeNotes.values()).some(
-            activeFreq => Math.abs(activeFreq - note) < 0.01
-          );
-          
+    <div className="note-grid">
+      {mappings
+        .filter(m => m && m.freq)
+        .map(({ freq, name, key }, idx) => {
+          const isActive = activeFreqs.has(freq);
           return (
-            <span 
-              key={index} 
-              className={`note-button ${isActive ? 'active' : ''}`}
-            >
-              {frequencyToNoteName(note)}
+            <span key={idx} className={`note-button ${isActive ? 'active' : ''}`}>
+              {name} {key ? `(${key})` : ''}
             </span>
           );
         })}
-      </div>
+    </div>
+  );
+};
+
+const MaqamNoteDisplay = ({ upMappings = [], baseMappings = [], downMappings = [], activeFreqs = new Set() }) => {
+  return (
+    <div className="note-display-section">
+      <h2>Maqam Notes:</h2>
+      <Row mappings={upMappings} activeFreqs={activeFreqs} />
+      <Row mappings={baseMappings} activeFreqs={activeFreqs} />
+      <Row mappings={downMappings} activeFreqs={activeFreqs} />
     </div>
   );
 };
