@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/MaqamSynth/precache-manifest.f6ec4292de147d8c22098140d20c5b87.js"
+  "/MaqamSynth/precache-manifest.098bd14f90a927b5ee5c1ccc370eebf9.js"
 );
 
 self.addEventListener('message', (event) => {
