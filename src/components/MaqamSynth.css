@@ -3,25 +3,35 @@
 .note-display-section {
   background-color: var(--secondary-bg-color);
   border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 30px;
+  padding: 15px; /* Reduced padding */
+  margin-bottom: 10px; /* Reduced margin */
   box-shadow: 0 4px 8px var(--shadow-color);
   width: 100%;
   max-width: 1200px;
   text-align: center;
+  flex: 1 1 auto; /* Grow to fill space */
+  overflow-y: auto; /* Scroll internally if needed */
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Allow flex item to shrink below content size */
 }
 
 .note-display-section h2 {
   color: var(--accent-color);
   margin-top: 0;
-  margin-bottom: 20px;
+  margin-bottom: 10px; /* Reduced margin */
+  font-size: 1.2rem;
+  flex: 0 0 auto;
 }
 
 .note-grid {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 10px;
+  gap: 5px; /* Reduced gap */
+  overflow-y: auto;
+  flex: 1 1 auto;
+  align-content: flex-start; /* Pack notes at the top */
 }
 
 .note-button {
@@ -58,30 +68,37 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
+  padding: 10px; /* Reduced padding */
   background-color: var(--primary-bg-color);
   color: var(--text-color);
-  min-height: 100vh;
+  height: 100vh; /* Fill viewport height */
+  overflow: hidden; /* Prevent body scroll */
   font-family: 'Arial', sans-serif;
 }
 
 h1 {
   color: var(--accent-light);
-  margin-bottom: 30px;
+  margin-bottom: 10px; /* Reduced margin */
+  margin-top: 0;
   text-shadow: 2px 2px 4px var(--shadow-color);
+  font-size: 1.5rem; /* Slightly smaller title */
+  flex: 0 0 auto;
 }
 
 .synth-controls-container {
   background-color: var(--secondary-bg-color);
   border-radius: 10px;
-  padding: 20px;
-  margin-bottom: 30px;
+  padding: 15px; /* Reduced padding */
+  margin-bottom: 10px; /* Reduced margin */
   box-shadow: 0 4px 8px var(--shadow-color);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Slightly narrower columns */
+  gap: 10px; /* Reduced gap */
   width: 100%;
   max-width: 1200px;
+  flex: 0 1 auto; /* Allow shrinking but not growing infinitely */
+  overflow-y: auto; /* Scroll internally if needed */
+  min-height: 0; /* Allow flex item to shrink below content size */
 }
 
 .control-group {
@@ -191,11 +208,12 @@ h1 {
 .keyboard-info {
   background-color: var(--secondary-bg-color);
   border-radius: 10px;
-  padding: 20px;
+  padding: 10px; /* Reduced padding */
   box-shadow: 0 4px 8px var(--shadow-color);
   text-align: center;
   width: 100%;
   max-width: 800px;
+  flex: 0 0 auto; /* Don't grow or shrink */
 }
 
 .keyboard-info p {

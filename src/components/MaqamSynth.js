@@ -6,7 +6,7 @@ import MaqamNoteDisplay from './MaqamNoteDisplay';
 import './MaqamSynth.css';
 
 // --- Global Maqam Data (constants) ---
-const ROOT_FREQUENCY = 55; // Root frequency, likely A1 in Hz
+const ROOT_FREQUENCY = 110; // Root frequency, likely A1 in Hz
 const MICROTONAL_SIZE = 53; // Number of steps in the equal temperament system (53-TET)
 
 // The dictionary of Turkish Maqams intervals in 53-TET steps
