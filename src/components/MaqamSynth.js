@@ -7,6 +7,9 @@ import './MaqamSynth.css';
 // --- Global Maqam Data (constants) ---
 const ROOT_FREQUENCY = 110; // Root frequency, likely A1 in Hz
 const MICROTONAL_SIZE = 53; // Number of steps in the equal temperament system (53-TET)
+const UP_KEY_POOL = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'ı', 'o', 'p', 'ğ', 'ü'];
+const BASE_KEY_POOL = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ş', 'i', ','];
+const DOWN_KEY_POOL = ['z', 'x', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç', '.'];
 
 // The dictionary of Turkish Maqams intervals in 53-TET steps
 const tMaqamsIntervals = {
@@ -84,14 +87,10 @@ const MaqamSynth = () => {
   const [maqamNotes, setMaqamNotes] = useState([]);
   const [rootNoteOffset, setRootNoteOffset] = useState(0);
   const currentMaqamScaleLength = (tMaqamsIntervals[currentMaqam]?.length || 0) + 1;
-  const [activeKeys, setActiveKeys] = useState(new Set());
   const [activeFreqs, setActiveFreqs] = useState(new Set());
-  const upKeyPool = ['q', 'w', 'e', 'r', 't', 'y', 'u', 'ı', 'o', 'p', 'ğ', 'ü'];
-  const baseKeyPool = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'ş', 'i', ','];
-  const downKeyPool = ['z', 'x', 'c', 'v', 'b', 'n', 'm', 'ö', 'ç', '.'];
-  const baseOctaveKeys = React.useMemo(() => baseKeyPool.slice(0, currentMaqamScaleLength), [currentMaqamScaleLength]);
-  const octaveDownKeys = React.useMemo(() => downKeyPool.slice(0, Math.min(currentMaqamScaleLength, downKeyPool.length)), [currentMaqamScaleLength]);
-  const octaveUpKeys = React.useMemo(() => upKeyPool.slice(0, Math.min(currentMaqamScaleLength, upKeyPool.length)), [currentMaqamScaleLength]);
+  const baseOctaveKeys = React.useMemo(() => BASE_KEY_POOL.slice(0, currentMaqamScaleLength), [currentMaqamScaleLength]);
+  const octaveDownKeys = React.useMemo(() => DOWN_KEY_POOL.slice(0, Math.min(currentMaqamScaleLength, DOWN_KEY_POOL.length)), [currentMaqamScaleLength]);
+  const octaveUpKeys = React.useMemo(() => UP_KEY_POOL.slice(0, Math.min(currentMaqamScaleLength, UP_KEY_POOL.length)), [currentMaqamScaleLength]);
   const buildMappings = React.useCallback((keys, octaveSlot) => keys.map((k, i) => {
     const idx = (octaveSlot * currentMaqamScaleLength) + i;
     const freq = maqamNotes[idx];
@@ -161,9 +160,11 @@ const MaqamSynth = () => {
         }
         document.removeEventListener('keydown', startAudio);
         document.removeEventListener('click', startAudio);
+        document.removeEventListener('touchstart', startAudio);
       };
       document.addEventListener('keydown', startAudio);
       document.addEventListener('click', startAudio);
+      document.addEventListener('touchstart', startAudio, { passive: true });
     }
   }, []); // Empty dependency array: runs only once on mount
 
@@ -205,11 +206,6 @@ const MaqamSynth = () => {
     if (synth.current && !activeNotes.current.has(key)) {
       synth.current.triggerAttack(frequency);
       activeNotes.current.set(key, frequency);
-      setActiveKeys(prev => {
-        const s = new Set(prev);
-        s.add(key);
-        return s;
-      });
       setActiveFreqs(prev => {
         const s = new Set(prev);
         s.add(frequency);
@@ -223,11 +219,6 @@ const MaqamSynth = () => {
       const frequency = activeNotes.current.get(key);
       synth.current.triggerRelease(frequency);
       activeNotes.current.delete(key);
-      setActiveKeys(prev => {
-        const s = new Set(prev);
-        s.delete(key);
-        return s;
-      });
       setActiveFreqs(prev => {
         const s = new Set(prev);
         s.delete(frequency);
@@ -292,7 +283,6 @@ const MaqamSynth = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
       activeNotes.current.clear();
-      setActiveKeys(new Set());
       setActiveFreqs(new Set());
     };
   }, [maqamNotes, currentMaqam, triggerAttack, triggerRelease, currentMaqamScaleLength, baseOctaveKeys, octaveDownKeys, octaveUpKeys]);
@@ -328,6 +318,8 @@ const MaqamSynth = () => {
         baseMappings={baseMappings}
         downMappings={downMappings}
         activeFreqs={activeFreqs}
+        onNoteDown={(freq, key) => triggerAttack(freq, key)}
+        onNoteUp={(key) => triggerRelease(key)}
       />
     </div>
   );
