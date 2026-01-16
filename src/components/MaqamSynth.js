@@ -68,6 +68,9 @@ const MaqamSynth = () => {
   const gainNode = useRef(null);
   const delayEffect = useRef(null);
   const reverbEffect = useRef(null);
+  const filterEffect = useRef(null); // Filter
+  const distortionEffect = useRef(null); // Distortion
+  const chorusEffect = useRef(null); // Chorus
   const limiter = useRef(null); // Add a limiter to prevent clipping
 
   // --- State for Synth Parameters ---
@@ -77,10 +80,23 @@ const MaqamSynth = () => {
   const [sustain, setSustain] = useState(0.5); // Default sustain
   const [release, setRelease] = useState(1.0);  // Default release
 
+  // --- State for Modulation Oscillator ---
+  const [modOscillatorType, setModOscillatorType] = useState('sine');
+  const [modAttack, setModAttack] = useState(0.01);
+  const [modDecay, setModDecay] = useState(0.2);
+  const [modSustain, setModSustain] = useState(0.5);
+  const [modRelease, setModRelease] = useState(1.0);
+  const [modulationIndex, setModulationIndex] = useState(10);
+  const [harmonicity, setHarmonicity] = useState(1);
+
   // --- State for Effects ---
   const [delayAmount, setDelayAmount] = useState(0);
   const [delayFeedback, setDelayFeedback] = useState(0.5); // New: Delay Feedback
   const [reverbAmount, setReverbAmount] = useState(0);
+  const [filterCutoff, setFilterCutoff] = useState(2000); // Filter Cutoff
+  const [filterResonance, setFilterResonance] = useState(1); // Filter Resonance (Q)
+  const [distortionAmount, setDistortionAmount] = useState(0); // Distortion Amount
+  const [chorusDepth, setChorusDepth] = useState(0); // Chorus Depth
 
   // --- Maqam related states ---
   const [currentMaqam, setCurrentMaqam] = useState('Rast');
@@ -144,13 +160,25 @@ const MaqamSynth = () => {
       // Create effects
       delayEffect.current = new Tone.FeedbackDelay("8n", delayFeedback).set({ wet: 0 });
       reverbEffect.current = new Tone.Reverb({ decay: 1.5, wet: 0.05 }).set({ wet: 0 });
+      filterEffect.current = new Tone.Filter(2000, "lowpass");
+      distortionEffect.current = new Tone.Distortion(0).set({ wet: 0 });
+      chorusEffect.current = new Tone.Chorus(4, 2.5, 0.5).set({ wet: 0 });
       limiter.current = new Tone.Limiter(-6); // -6 dB threshold, prevents clipping
 
-      // Chain: Synth -> Delay -> Reverb -> Limiter -> Gain -> Destination
-      synth.current = new Tone.PolySynth(Tone.Synth, {
+      // Chain: Synth -> Distortion -> Filter -> Chorus -> Delay -> Reverb -> Limiter -> Gain -> Destination
+      synth.current = new Tone.PolySynth(Tone.FMSynth, {
         oscillator: { type: oscillatorType },
-        envelope: { attack, decay, sustain, release }, // Use state variables
-      }).chain(delayEffect.current, reverbEffect.current, limiter.current, gainNode.current, Tone.Destination);
+        envelope: { attack, decay, sustain, release },
+        modulation: { type: modOscillatorType },
+        modulationEnvelope: { 
+          attack: modAttack, 
+          decay: modDecay, 
+          sustain: modSustain, 
+          release: modRelease 
+        },
+        modulationIndex: modulationIndex,
+        harmonicity: harmonicity
+      }).chain(distortionEffect.current, filterEffect.current, chorusEffect.current, delayEffect.current, reverbEffect.current, limiter.current, gainNode.current, Tone.Destination);
 
       // Start Tone.js context on first user interaction
       const startAudio = () => {
@@ -182,24 +210,46 @@ const MaqamSynth = () => {
       synth.current.set({
         oscillator: { type: oscillatorType },
         envelope: { attack, decay, sustain, release },
+        modulation: { type: modOscillatorType },
+        modulationEnvelope: { 
+          attack: modAttack, 
+          decay: modDecay, 
+          sustain: modSustain, 
+          release: modRelease 
+        },
+        modulationIndex: modulationIndex,
+        harmonicity: harmonicity
       });
     }
-  }, [oscillatorType, attack, decay, sustain, release]);
+  }, [
+    oscillatorType, attack, decay, sustain, release,
+    modOscillatorType, modAttack, modDecay, modSustain, modRelease,
+    modulationIndex, harmonicity
+  ]);
 
-  // --- Update Delay Effect ---
+  // --- Update Effects Parameters ---
   useEffect(() => {
     if (delayEffect.current) {
-      delayEffect.current.wet.value = delayAmount;
+      delayEffect.current.delayTime.value = "8n"; // Fixed time for now
       delayEffect.current.feedback.value = delayFeedback;
+      delayEffect.current.wet.value = delayAmount;
     }
-  }, [delayAmount, delayFeedback]);
-
-  // --- Update Reverb Effect ---
-  useEffect(() => {
     if (reverbEffect.current) {
       reverbEffect.current.wet.value = reverbAmount;
     }
-  }, [reverbAmount]);
+    if (filterEffect.current) {
+      filterEffect.current.frequency.value = filterCutoff;
+      filterEffect.current.Q.value = filterResonance;
+    }
+    if (distortionEffect.current) {
+      distortionEffect.current.distortion = distortionAmount;
+      distortionEffect.current.wet.value = distortionAmount > 0 ? 1 : 0; // Simple wet/dry mix logic or always 1 if amount > 0
+    }
+    if (chorusEffect.current) {
+      chorusEffect.current.depth = chorusDepth;
+      chorusEffect.current.wet.value = chorusDepth > 0 ? 0.5 : 0; // Default wet to 0.5 if depth is added
+    }
+  }, [delayAmount, delayFeedback, reverbAmount, filterCutoff, filterResonance, distortionAmount, chorusDepth]);
 
   // --- Play/Release Notes ---
   const triggerAttack = useCallback((frequency, key) => {
@@ -291,35 +341,42 @@ const MaqamSynth = () => {
     <div className="maqam-synth-container">
       <h1>Turkish Maqam Synthesizer</h1>
       <SynthControls
-        currentMaqam={currentMaqam}
-        setCurrentMaqam={setCurrentMaqam}
-        tMaqamsIntervals={tMaqamsIntervals}
         rootNoteOffset={rootNoteOffset}
         setRootNoteOffset={setRootNoteOffset}
         oscillatorType={oscillatorType}
         setOscillatorType={setOscillatorType}
-        attack={attack}
-        setAttack={setAttack}
-        decay={decay}
-        setDecay={setDecay}
-        sustain={sustain}
-        setSustain={setSustain}
-        release={release}
-        setRelease={setRelease}
-        delayAmount={delayAmount}
-        setDelayAmount={setDelayAmount}
-        delayFeedback={delayFeedback}
-        setDelayFeedback={setDelayFeedback}
-        reverbAmount={reverbAmount}
-        setReverbAmount={setReverbAmount}
+        attack={attack} setAttack={setAttack}
+        decay={decay} setDecay={setDecay}
+        sustain={sustain} setSustain={setSustain}
+        release={release} setRelease={setRelease}
+        // Modulation props
+        modOscillatorType={modOscillatorType} setModOscillatorType={setModOscillatorType}
+        modAttack={modAttack} setModAttack={setModAttack}
+        modDecay={modDecay} setModDecay={setModDecay}
+        modSustain={modSustain} setModSustain={setModSustain}
+        modRelease={modRelease} setModRelease={setModRelease}
+        modulationIndex={modulationIndex} setModulationIndex={setModulationIndex}
+        harmonicity={harmonicity} setHarmonicity={setHarmonicity}
+        // Effects props
+        delayAmount={delayAmount} setDelayAmount={setDelayAmount}
+        delayFeedback={delayFeedback} setDelayFeedback={setDelayFeedback}
+        reverbAmount={reverbAmount} setReverbAmount={setReverbAmount}
+        filterCutoff={filterCutoff} setFilterCutoff={setFilterCutoff}
+        filterResonance={filterResonance} setFilterResonance={setFilterResonance}
+        distortionAmount={distortionAmount} setDistortionAmount={setDistortionAmount}
+        chorusDepth={chorusDepth} setChorusDepth={setChorusDepth}
       />
       <MaqamNoteDisplay 
         upMappings={upMappings}
         baseMappings={baseMappings}
         downMappings={downMappings}
         activeFreqs={activeFreqs}
-        onNoteDown={(freq, key) => triggerAttack(freq, key)}
-        onNoteUp={(key) => triggerRelease(key)}
+        onNoteDown={triggerAttack}
+        onNoteUp={triggerRelease}
+        // Maqam Selection Props
+        currentMaqam={currentMaqam}
+        setCurrentMaqam={setCurrentMaqam}
+        tMaqamsIntervals={tMaqamsIntervals}
       />
     </div>
   );

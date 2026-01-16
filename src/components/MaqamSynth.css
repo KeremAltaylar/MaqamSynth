@@ -1,241 +1,329 @@
 /* MaqamSynth.css */
 
-.note-display-section {
-  background-color: var(--secondary-bg-color);
-  border-radius: 10px;
-  padding: 15px; /* Reduced padding */
-  margin-bottom: 10px; /* Reduced margin */
-  box-shadow: 0 4px 8px var(--shadow-color);
-  width: 100%;
-  max-width: 1200px;
-  text-align: center;
-  flex: 1 1 auto; /* Grow to fill space */
-  overflow-y: auto; /* Scroll internally if needed */
-  display: flex;
-  flex-direction: column;
-  min-height: 0; /* Allow flex item to shrink below content size */
+:root {
+  /* 5 Color Pastel Palette */
+  --bg-main: #FDFBF7;      /* 1. Cream White (Background) */
+  --bg-panel: #EAE4E9;     /* 2. Soft Lavender/Thistle (Panels) */
+  --accent-primary: #FFB7B2; /* 3. Pastel Coral (Active/Knobs) */
+  --accent-secondary: #B5EAD7; /* 4. Pastel Mint (Sliders/Highlights) */
+  --text-color: #4A4063;   /* 5. Deep Violet Grey (Text/Contrast) */
+  
+  --titleplate-color: #C7CEEA; /* 6. Pastel Blue/Periwinkle for Titleplates (Distinct) */
+
+  --border-color: #D1C4E9; /* Light Purple Grey Border */
+  --shadow-color: rgba(74, 64, 99, 0.15); /* Soft shadow based on text color */
 }
 
-.note-display-section h2 {
-  color: var(--accent-color);
-  margin-top: 0;
-  margin-bottom: 10px; /* Reduced margin */
-  font-size: 1.2rem;
+body, html {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* Strict no scroll on body */
+  background-color: var(--bg-main);
+  font-family: 'Helvetica Neue', Arial, sans-serif; /* Cleaner font */
+  color: var(--text-color);
+}
+
+.maqam-synth-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  padding: 10px;
+  box-sizing: border-box;
+  gap: 10px;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0;
+  text-align: center;
   flex: 0 0 auto;
+  text-shadow: none; /* Removed harsh shadow */
+  font-weight: 700;
+  letter-spacing: 1px;
+  
+  /* Title Plate Styles */
+  background-color: #C7CEEA; /* Pastel Blue/Periwinkle */
+  color: var(--text-color); /* Dark Text for better contrast */
+  padding: 8px 0;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* --- Synth Controls --- */
+.synth-controls-container {
+  background-color: var(--bg-panel);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  flex: 0 0 auto; /* Do not grow, but let content dictate size */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: visible; /* Allow knobs to breathe */
+  border: 1px solid var(--border-color);
+}
+
+.controls-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  background-color: var(--bg-main); /* Inner cards are lighter */
+  padding: 0; /* Remove padding to let titleplate sit flush */
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 110px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  overflow: hidden; /* Ensure titleplate corners are clipped */
+}
+
+/* Make Effects Group Larger/Prominent */
+.fx-controls {
+  flex: 2 1 auto; /* Grow more than others */
+  /* Border removed as requested */
+}
+
+/* Titleplate Styling */
+.control-group > label, .control-group > h3 {
+  background-color: var(--titleplate-color); /* Distinct Pastel Color */
+  color: var(--text-color);
+  width: 100%;
+  margin: 0;
+  padding: 6px 0; /* Vertical padding for title */
+  font-size: 0.85rem; 
+  font-weight: 700; 
+  text-align: center;
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-color);
+  display: block; /* Ensure it behaves like a block for width */
+}
+
+.control-group > div, .control-group > .adsr-row {
+    padding: 8px; /* Add padding back to content area */
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column; /* Default for inputs */
+    align-items: center;
+    justify-content: center; /* Vertical centering */
+    flex: 1; /* Take up available vertical space */
+}
+
+.control-group > .adsr-row {
+    flex-direction: row; /* Row for dials */
+    justify-content: space-around;
+    align-items: center; /* Vertical center for row items */
+}
+
+/* Segmented Control Styling */
+.segmented-control {
+  display: flex;
+  flex-direction: row;
+  background-color: #ffffff; /* White background as requested */
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.segmented-control .segment {
+  flex: 1;
+  text-align: center;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-color);
+  user-select: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.segmented-control .segment input {
+  display: none; /* Hide radio button */
+}
+
+.segmented-control .segment:hover {
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.segmented-control .segment.active {
+  background-color: var(--accent-primary);
+  color: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Specific styling for Octave Control to look good */
+.octave-control {
+    width: auto; /* Let it shrink/grow */
+    min-width: 180px;
+}
+
+/* Compact specific groups */
+.offset-group, .osc-type-group {
+  flex: 0 1 auto;
+}
+
+/* Dials & ADSR */
+.dial-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 55px;
+}
+.dial-item label {
+  font-size: 0.8rem; /* Larger */
+  margin-bottom: 2px;
+  font-weight: 700;
+}
+.dial-item span {
+  font-size: 0.75rem; /* Larger */
+  font-family: monospace;
+  color: var(--text-color);
+  font-weight: 600;
+  background: rgba(255,255,255,0.5);
+  padding: 1px 4px;
+  border-radius: 4px;
+}
+
+/* --- Note Display Section --- */
+.note-display-section {
+  background-color: var(--bg-panel);
+  border-radius: 12px;
+  padding: 0; /* Removed padding to let header flush */
+  box-shadow: 0 4px 12px var(--shadow-color);
+  flex: 1 1 auto; /* Fill remaining space, but can shrink if controls need more */
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* Container itself shouldn't scroll, inner content should */
+  border: 1px solid var(--border-color);
+}
+
+.note-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px; /* Adjusted padding */
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--titleplate-color); /* Match titleplates */
+  flex: 0 0 auto;
+}
+
+.note-header h2 {
+  font-size: 1.1rem;
+  color: var(--text-color);
+  margin: 0;
+  font-weight: 600;
+}
+
+.maqam-selector {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.maqam-selector label {
+  font-size: 0.95rem;
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.maqam-selector select {
+  padding: 4px 8px; /* Slightly smaller to fit header */
+  border-radius: 6px;
+  background-color: var(--bg-main);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+}
+.maqam-selector select:focus {
+  border-color: var(--accent-primary);
+}
+
+.rows-container {
+  flex: 1 1 auto;
+  overflow-y: auto; /* Allow scrolling for keys if they don't fit */
+  padding: 8px; /* Added padding here for content */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly; /* Spread rows evenly */
+  gap: 5px;
 }
 
 .note-grid {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 5px; /* Reduced gap */
-  overflow-y: auto;
-  flex: 1 1 auto;
-  align-content: flex-start; /* Pack notes at the top */
+  gap: 4px;
+  padding: 2px;
 }
 
 .note-button {
-  background-color: var(--control-bg-color);
+  background-color: var(--bg-main);
   color: var(--text-color);
-  padding: 8px 12px;
-  border-radius: 5px;
+  padding: 8px 10px;
+  border-radius: 6px;
   border: 1px solid var(--border-color);
-  font-size: 0.9em;
+  font-size: 0.85rem;
+  font-weight: 600;
   white-space: nowrap;
-  transition: all 0.2s ease;
   cursor: pointer;
+  user-select: none;
+  flex: 1 0 auto; /* Grow to fill width */
+  text-align: center;
+  max-width: 90px;
+  transition: all 0.1s ease;
+  box-shadow: 0 2px 0 rgba(0,0,0,0.05);
+}
+
+.note-button:active {
+    transform: translateY(2px);
+    box-shadow: none;
 }
 
 .note-button.active {
-  background-color: var(--accent-color);
-  color: white;
-  transform: scale(1.05);
-  box-shadow: 0 0 8px var(--accent-light);
+  background-color: var(--accent-primary);
+  color: white; /* Contrast text on accent */
+  border-color: var(--accent-primary);
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
 }
 
-
-:root {
-  --primary-bg-color: #2c2c2c; /* Dark charcoal */
-  --secondary-bg-color: #3a3a3a; /* Slightly lighter charcoal */
-  --control-bg-color: #4a4a4a; /* Medium charcoal for controls */
-  --text-color: #e0e0e0; /* Light gray for text */
-  --accent-color: #8b4513; /* SaddleBrown - woody tone */
-  --accent-light: #a0522d; /* Sienna - lighter woody tone */
-  --border-color: #555555; /* Dark gray for borders */
-  --shadow-color: rgba(0, 0, 0, 0.5);
-}
-
-.maqam-synth-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px; /* Reduced padding */
-  background-color: var(--primary-bg-color);
-  color: var(--text-color);
-  height: 100vh; /* Fill viewport height */
-  overflow: hidden; /* Prevent body scroll */
-  font-family: 'Arial', sans-serif;
-}
-
-h1 {
-  color: var(--accent-light);
-  margin-bottom: 10px; /* Reduced margin */
-  margin-top: 0;
-  text-shadow: 2px 2px 4px var(--shadow-color);
-  font-size: 1.5rem; /* Slightly smaller title */
-  flex: 0 0 auto;
-}
-
-.synth-controls-container {
-  background-color: var(--secondary-bg-color);
-  border-radius: 10px;
-  padding: 15px; /* Reduced padding */
-  margin-bottom: 10px; /* Reduced margin */
-  box-shadow: 0 4px 8px var(--shadow-color);
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Slightly narrower columns */
-  gap: 10px; /* Reduced gap */
-  width: 100%;
-  max-width: 1200px;
-  flex: 0 1 auto; /* Allow shrinking but not growing infinitely */
-  overflow-y: auto; /* Scroll internally if needed */
-  min-height: 0; /* Allow flex item to shrink below content size */
-}
-
-.control-group {
-  background-color: var(--control-bg-color);
-  padding: 15px;
-  border-radius: 8px;
-  border: 1px solid var(--border-color);
-  box-shadow: inset 0 1px 3px var(--shadow-color);
-}
-
-.control-group label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: bold;
-  color: var(--accent-color);
-}
-
-.control-group input[type="range"] {
-  width: calc(100% - 60px); /* Adjust for span width */
-  margin-right: 10px;
-  -webkit-appearance: none;
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
   height: 8px;
-  background: var(--border-color);
-  border-radius: 5px;
-  outline: none;
 }
-
-.control-group input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--accent-light);
-  cursor: pointer;
-  border: 2px solid var(--text-color);
+::-webkit-scrollbar-track {
+  background: var(--bg-main); 
 }
-
-.control-group input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--accent-light);
-  cursor: pointer;
-  border: 2px solid var(--text-color);
+::-webkit-scrollbar-thumb {
+  background: var(--accent-secondary); 
+  border-radius: 4px;
 }
-
-.control-group span {
-  display: inline-block;
-  width: 50px;
-  text-align: right;
-  font-size: 0.9em;
-  color: var(--text-color);
-}
-
-.control-group select {
-  width: 100%;
-  padding: 8px;
-  border-radius: 5px;
-  border: 1px solid var(--border-color);
-  background-color: var(--primary-bg-color);
-  color: var(--text-color);
-  appearance: none; /* Remove default arrow */
-  background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23e0e0e0%22%20d%3D%22M287%2C197.3L159.3%2C69.6c-3.2-3.2-8.4-3.2-11.6%2C0L5.4%2C197.3c-3.2%2C3.2-3.2%2C8.4%2C0%2C11.6l11.6%2C11.6c3.2%2C3.2%2C8.4%2C3.2%2C11.6%2C0l124.7-124.7l124.7%2C124.7c3.2%2C3.2%2C8.4%2C3.2%2C11.6%2C0l11.6-11.6C290.2%2C205.7%2C290.2%2C200.5%2C287%2C197.3z%22%2F%3E%3C%2Fsvg%3E');
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  background-size: 12px;
-}
-
-.radio-group input[type="radio"] {
-  margin-right: 5px;
-}
-
-.radio-group label {
-  display: inline-block;
-  margin-right: 15px;
-  font-weight: normal;
-  color: var(--text-color);
-}
-
-.adsr-controls h3 {
-  color: var(--accent-color);
-  margin-top: 0;
-  margin-bottom: 15px;
-  text-align: center;
-}
-
-.adsr-controls .control-item {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.adsr-controls .control-item label {
-  flex: 1;
-  margin-bottom: 0;
-}
-
-.adsr-controls .control-item input[type="range"] {
-  flex: 2;
-}
-
-.adsr-controls .control-item span {
-  flex: 0 0 50px;
-}
-
-.keyboard-info {
-  background-color: var(--secondary-bg-color);
-  border-radius: 10px;
-  padding: 10px; /* Reduced padding */
-  box-shadow: 0 4px 8px var(--shadow-color);
-  text-align: center;
-  width: 100%;
-  max-width: 800px;
-  flex: 0 0 auto; /* Don't grow or shrink */
-}
-
-.keyboard-info p {
-  margin: 5px 0;
-  font-size: 0.9em;
-}
-
-.keyboard-info kbd {
-  display: inline-block;
-  padding: 3px 6px;
-  border: 1px solid var(--border-color);
-  border-radius: 3px;
-  background-color: var(--control-bg-color);
-  box-shadow: 0 1px 0 var(--border-color);
-  font-family: monospace;
-  font-size: 0.8em;
-  color: var(--text-color);
-  margin: 0 2px;
-}
-
-.keyboard-info kbd.active {
-  background-color: var(--accent-color);
-  color: white;
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary); 
 }

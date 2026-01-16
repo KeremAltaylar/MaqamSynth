@@ -24,13 +24,35 @@ const Row = ({ mappings = [], activeFreqs = new Set(), onNoteDown = () => {}, on
   );
 };
 
-const MaqamNoteDisplay = ({ upMappings = [], baseMappings = [], downMappings = [], activeFreqs = new Set(), onNoteDown = () => {}, onNoteUp = () => {} }) => {
+const MaqamNoteDisplay = ({ 
+  upMappings = [], baseMappings = [], downMappings = [], 
+  activeFreqs = new Set(), onNoteDown = () => {}, onNoteUp = () => {},
+  currentMaqam, setCurrentMaqam, tMaqamsIntervals 
+}) => {
   return (
     <div className="note-display-section">
-      <h2>Maqam Notes:</h2>
-      <Row mappings={upMappings} activeFreqs={activeFreqs} onNoteDown={onNoteDown} onNoteUp={onNoteUp} />
-      <Row mappings={baseMappings} activeFreqs={activeFreqs} onNoteDown={onNoteDown} onNoteUp={onNoteUp} />
-      <Row mappings={downMappings} activeFreqs={activeFreqs} onNoteDown={onNoteDown} onNoteUp={onNoteUp} />
+      <div className="note-header">
+        <h2>Maqam Notes</h2>
+        {tMaqamsIntervals && (
+          <div className="maqam-selector">
+             <label htmlFor="maqam-select-note">Select Maqam:</label>
+             <select
+               id="maqam-select-note"
+               value={currentMaqam}
+               onChange={(e) => setCurrentMaqam(e.target.value)}
+             >
+               {Object.keys(tMaqamsIntervals).map((maqam) => (
+                 <option key={maqam} value={maqam}>{maqam}</option>
+               ))}
+             </select>
+          </div>
+        )}
+      </div>
+      <div className="rows-container">
+        <Row mappings={upMappings} activeFreqs={activeFreqs} onNoteDown={onNoteDown} onNoteUp={onNoteUp} />
+        <Row mappings={baseMappings} activeFreqs={activeFreqs} onNoteDown={onNoteDown} onNoteUp={onNoteUp} />
+        <Row mappings={downMappings} activeFreqs={activeFreqs} onNoteDown={onNoteDown} onNoteUp={onNoteUp} />
+      </div>
     </div>
   );
 };
