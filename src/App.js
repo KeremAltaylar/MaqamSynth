@@ -1,15 +1,10 @@
 // src/App.js
 import React from 'react';
-import './App.css';
 
-import MaqamSynth from './components/MaqamSynth'; // <--- Make sure this import is here
+import MaqamSynth from './components/MaqamSynth';
 
 function App() {
-  return (
-    <div>
-      <MaqamSynth /> {/* <--- Make sure this component is rendered here */}
-    </div>
-  );
+  return <MaqamSynth />;
 }
 
 export default App;

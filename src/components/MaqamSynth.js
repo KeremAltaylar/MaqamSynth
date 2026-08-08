@@ -88,6 +88,9 @@ const MaqamSynth = () => {
   const [rootNoteOffset, setRootNoteOffset] = useState(0);
   const currentMaqamScaleLength = (tMaqamsIntervals[currentMaqam]?.length || 0) + 1;
   const [activeFreqs, setActiveFreqs] = useState(new Set());
+  /* Open by default where there is room for it, closed on a phone so the
+     controls are the first thing you see. */
+  const [keyboardOpen, setKeyboardOpen] = useState(() => window.innerWidth > 640);
   const baseOctaveKeys = React.useMemo(() => BASE_KEY_POOL.slice(0, currentMaqamScaleLength), [currentMaqamScaleLength]);
   const octaveDownKeys = React.useMemo(() => DOWN_KEY_POOL.slice(0, Math.min(currentMaqamScaleLength, DOWN_KEY_POOL.length)), [currentMaqamScaleLength]);
   const octaveUpKeys = React.useMemo(() => UP_KEY_POOL.slice(0, Math.min(currentMaqamScaleLength, UP_KEY_POOL.length)), [currentMaqamScaleLength]);
@@ -288,39 +291,59 @@ const MaqamSynth = () => {
   }, [maqamNotes, currentMaqam, triggerAttack, triggerRelease, currentMaqamScaleLength, baseOctaveKeys, octaveDownKeys, octaveUpKeys]);
 
   return (
-    <div className="maqam-synth-container">
-      <h1>Turkish Maqam Synthesizer</h1>
-      <SynthControls
-        currentMaqam={currentMaqam}
-        setCurrentMaqam={setCurrentMaqam}
-        tMaqamsIntervals={tMaqamsIntervals}
-        rootNoteOffset={rootNoteOffset}
-        setRootNoteOffset={setRootNoteOffset}
-        oscillatorType={oscillatorType}
-        setOscillatorType={setOscillatorType}
-        attack={attack}
-        setAttack={setAttack}
-        decay={decay}
-        setDecay={setDecay}
-        sustain={sustain}
-        setSustain={setSustain}
-        release={release}
-        setRelease={setRelease}
-        delayAmount={delayAmount}
-        setDelayAmount={setDelayAmount}
-        delayFeedback={delayFeedback}
-        setDelayFeedback={setDelayFeedback}
-        reverbAmount={reverbAmount}
-        setReverbAmount={setReverbAmount}
-      />
-      <MaqamNoteDisplay 
-        upMappings={upMappings}
-        baseMappings={baseMappings}
-        downMappings={downMappings}
-        activeFreqs={activeFreqs}
-        onNoteDown={(freq, key) => triggerAttack(freq, key)}
-        onNoteUp={(key) => triggerRelease(key)}
-      />
+    <div className={`synth-app ${keyboardOpen ? 'dock-open' : ''}`}>
+      <header className="synth-bar">
+        <div className="brand">
+          <span className="brand-mark">53-TET</span>
+          {/* The `long` spans drop away on narrow screens, leaving "Maqam Synth". */}
+          <h1><span className="long">Turkish </span>Maqam Synth<span className="long">esizer</span></h1>
+        </div>
+        <button
+          type="button"
+          className="kbd-toggle"
+          aria-expanded={keyboardOpen}
+          onClick={() => setKeyboardOpen((open) => !open)}
+        >
+          {keyboardOpen ? 'Hide keys' : 'Play keys'}
+        </button>
+      </header>
+
+      <main className="synth-body">
+        <SynthControls
+          currentMaqam={currentMaqam}
+          setCurrentMaqam={setCurrentMaqam}
+          tMaqamsIntervals={tMaqamsIntervals}
+          rootNoteOffset={rootNoteOffset}
+          setRootNoteOffset={setRootNoteOffset}
+          oscillatorType={oscillatorType}
+          setOscillatorType={setOscillatorType}
+          attack={attack}
+          setAttack={setAttack}
+          decay={decay}
+          setDecay={setDecay}
+          sustain={sustain}
+          setSustain={setSustain}
+          release={release}
+          setRelease={setRelease}
+          delayAmount={delayAmount}
+          setDelayAmount={setDelayAmount}
+          delayFeedback={delayFeedback}
+          setDelayFeedback={setDelayFeedback}
+          reverbAmount={reverbAmount}
+          setReverbAmount={setReverbAmount}
+        />
+      </main>
+
+      <div className={`keyboard-dock ${keyboardOpen ? 'open' : ''}`} aria-hidden={!keyboardOpen}>
+        <MaqamNoteDisplay
+          upMappings={upMappings}
+          baseMappings={baseMappings}
+          downMappings={downMappings}
+          activeFreqs={activeFreqs}
+          onNoteDown={(freq, key) => triggerAttack(freq, key)}
+          onNoteUp={(key) => triggerRelease(key)}
+        />
+      </div>
     </div>
   );
 };

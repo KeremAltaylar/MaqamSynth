@@ -1,38 +1,86 @@
 import React from 'react';
 
-const Row = ({ mappings = [], activeFreqs = new Set(), onNoteDown = () => {}, onNoteUp = () => {} }) => {
-  return (
-    <div className="note-grid">
+/**
+ * One register of the maqam. Touch is handled explicitly and the synthetic
+ * mouse events that follow a tap are suppressed, otherwise a phone triggers
+ * every note twice.
+ */
+const OctaveRow = ({
+  label,
+  tone,
+  mappings = [],
+  activeFreqs = new Set(),
+  onNoteDown = () => {},
+  onNoteUp = () => {},
+}) => (
+  <div className="octave-row" style={{ '--row-tone': tone }}>
+    <span className="octave-tag">{label}</span>
+    <div className="note-row">
       {mappings
-        .filter(m => m && m.freq)
-        .map(({ freq, name, key }, idx) => {
-          const isActive = activeFreqs.has(freq);
-          return (
-            <span
-              key={idx}
-              className={`note-button ${isActive ? 'active' : ''}`}
-              onMouseDown={(e) => { e.preventDefault(); onNoteDown(freq, key); }}
-              onMouseUp={(e) => { e.preventDefault(); onNoteUp(key); }}
-              onTouchStart={(e) => { onNoteDown(freq, key); }}
-              onTouchEnd={(e) => { onNoteUp(key); }}
-            >
-              {name} {key ? `(${key})` : ''}
-            </span>
-          );
-        })}
+        .filter((m) => m && m.freq)
+        .map(({ freq, name, key }, idx) => (
+          <span
+            key={idx}
+            className={`note-key ${activeFreqs.has(freq) ? 'active' : ''}`}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              onNoteDown(freq, key);
+            }}
+            onMouseUp={() => onNoteUp(key)}
+            onMouseLeave={() => onNoteUp(key)}
+            onTouchStart={(e) => {
+              e.preventDefault();
+              onNoteDown(freq, key);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              onNoteUp(key);
+            }}
+            onTouchCancel={() => onNoteUp(key)}
+          >
+            <span className="n">{name}</span>
+            {key && <span className="k">{key}</span>}
+          </span>
+        ))}
     </div>
-  );
-};
+  </div>
+);
 
-const MaqamNoteDisplay = ({ upMappings = [], baseMappings = [], downMappings = [], activeFreqs = new Set(), onNoteDown = () => {}, onNoteUp = () => {} }) => {
-  return (
-    <div className="note-display-section">
-      <h2>Maqam Notes:</h2>
-      <Row mappings={upMappings} activeFreqs={activeFreqs} onNoteDown={onNoteDown} onNoteUp={onNoteUp} />
-      <Row mappings={baseMappings} activeFreqs={activeFreqs} onNoteDown={onNoteDown} onNoteUp={onNoteUp} />
-      <Row mappings={downMappings} activeFreqs={activeFreqs} onNoteDown={onNoteDown} onNoteUp={onNoteUp} />
-    </div>
-  );
-};
+const MaqamNoteDisplay = ({
+  upMappings = [],
+  baseMappings = [],
+  downMappings = [],
+  activeFreqs = new Set(),
+  onNoteDown = () => {},
+  onNoteUp = () => {},
+}) => (
+  <>
+    <OctaveRow
+      label="8va"
+      tone="var(--m-cool)"
+      mappings={upMappings}
+      activeFreqs={activeFreqs}
+      onNoteDown={onNoteDown}
+      onNoteUp={onNoteUp}
+    />
+    <OctaveRow
+      label="base"
+      tone="var(--m-warm)"
+      mappings={baseMappings}
+      activeFreqs={activeFreqs}
+      onNoteDown={onNoteDown}
+      onNoteUp={onNoteUp}
+    />
+    <OctaveRow
+      label="8vb"
+      tone="var(--m-clay)"
+      mappings={downMappings}
+      activeFreqs={activeFreqs}
+      onNoteDown={onNoteDown}
+      onNoteUp={onNoteUp}
+    />
+    <p className="dock-hint">Tap the keys, or play the matching letters on a physical keyboard</p>
+  </>
+);
 
 export default MaqamNoteDisplay;
