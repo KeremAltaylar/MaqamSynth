@@ -122,6 +122,35 @@
   padding-bottom: calc(var(--dock-h) + 1.5rem);
 }
 
+/* ---- Oscilloscope ---- */
+
+.scope {
+  max-width: 1240px;
+  margin: 0 auto clamp(0.7rem, 2vw, 1.1rem);
+  height: clamp(7rem, 20vh, 12rem);
+  border: 1px solid var(--m-line);
+  border-radius: var(--m-radius);
+  background: #0f1412;
+  overflow: hidden;
+  position: relative;
+}
+
+/* A faint vignette over the canvas keeps the spectrum from squaring off
+   against the panel edge. */
+.scope::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 140% at 50% 50%, transparent 55%, rgba(15, 20, 18, 0.9) 100%);
+}
+
+.scope canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .synth-controls {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
@@ -134,10 +163,25 @@
 }
 
 .panel {
-  background: var(--m-panel);
+  position: relative;
+  background:
+    linear-gradient(165deg, rgba(188, 207, 182, 0.045), transparent 42%),
+    var(--m-panel);
   border: 1px solid var(--m-line);
   border-radius: var(--m-radius);
   padding: 1rem 1.05rem 1.15rem;
+}
+
+/* A short lit rule at the top left of each panel, so a grid of boxes reads as a
+   set of modules on a rack rather than a table. */
+.panel::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: 1.05rem;
+  width: 2.2rem;
+  height: 1px;
+  background: var(--m-warm);
 }
 
 .panel > h2 {
@@ -188,7 +232,8 @@
 }
 
 .field > input[type='range'],
-.field > select {
+.field > select,
+.field > .segmented {
   grid-column: 1 / -1;
 }
 
@@ -264,7 +309,10 @@ select {
 
 .segmented {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Column count follows the number of options, so the same component works for
+     four waveforms and three filter types. */
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
   gap: 4px;
   padding: 4px;
   background: var(--m-raised);

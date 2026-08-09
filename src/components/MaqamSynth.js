@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as Tone from 'tone';
 import SynthControls from './SynthControls';
 import MaqamNoteDisplay from './MaqamNoteDisplay';
+import Scope from './Scope';
 import './MaqamSynth.css';
 
 // --- Global Maqam Data (constants) ---
@@ -66,9 +67,17 @@ const frequencyToNoteName = (frequency) => {
 const MaqamSynth = () => {
   const synth = useRef(null);
   const gainNode = useRef(null);
+  const filterEffect = useRef(null);
+  const crusherEffect = useRef(null);
+  const driveEffect = useRef(null);
+  const chorusEffect = useRef(null);
+  const phaserEffect = useRef(null);
+  const tremoloEffect = useRef(null);
   const delayEffect = useRef(null);
   const reverbEffect = useRef(null);
   const limiter = useRef(null); // Add a limiter to prevent clipping
+  const waveAnalyser = useRef(null);
+  const fftAnalyser = useRef(null);
 
   // --- State for Synth Parameters ---
   const [oscillatorType, setOscillatorType] = useState('sine');
@@ -78,9 +87,20 @@ const MaqamSynth = () => {
   const [release, setRelease] = useState(1.0);  // Default release
 
   // --- State for Effects ---
+  const [filterType, setFilterType] = useState('lowpass');
+  const [filterFreq, setFilterFreq] = useState(12000);
+  const [filterQ, setFilterQ] = useState(1);
+  const [crushAmount, setCrushAmount] = useState(0);
+  const [driveAmount, setDriveAmount] = useState(0);
+  const [chorusAmount, setChorusAmount] = useState(0);
+  const [phaserAmount, setPhaserAmount] = useState(0);
+  const [tremoloAmount, setTremoloAmount] = useState(0);
+  const [tremoloRate, setTremoloRate] = useState(6);
   const [delayAmount, setDelayAmount] = useState(0);
   const [delayFeedback, setDelayFeedback] = useState(0.5); // New: Delay Feedback
+  const [delayTime, setDelayTime] = useState(0.25);
   const [reverbAmount, setReverbAmount] = useState(0);
+  const [reverbDecay, setReverbDecay] = useState(1.5);
 
   // --- Maqam related states ---
   const [currentMaqam, setCurrentMaqam] = useState('Rast');
@@ -144,16 +164,42 @@ const MaqamSynth = () => {
       // Create master gain node
       gainNode.current = new Tone.Gain(0.5);
 
-      // Create effects
-      delayEffect.current = new Tone.FeedbackDelay("8n", delayFeedback).set({ wet: 0 });
+      /* Effects are ordered the way they would be patched on a desk: shape the
+         tone first, then colour it, then move it, and only then put it in a
+         room. Everything starts fully dry so the instrument opens up clean. */
+      filterEffect.current = new Tone.Filter({ type: 'lowpass', frequency: 12000, Q: 1 });
+      crusherEffect.current = new Tone.BitCrusher(4).set({ wet: 0 });
+      driveEffect.current = new Tone.Distortion(0.6).set({ wet: 0 });
+      chorusEffect.current = new Tone.Chorus(1.8, 3.5, 0.7).set({ wet: 0 }).start();
+      phaserEffect.current = new Tone.Phaser({ frequency: 0.4, octaves: 3, baseFrequency: 400 }).set({ wet: 0 });
+      tremoloEffect.current = new Tone.Tremolo(6, 0.9).set({ wet: 0 }).start();
+      delayEffect.current = new Tone.FeedbackDelay(0.25, delayFeedback).set({ wet: 0 });
       reverbEffect.current = new Tone.Reverb({ decay: 1.5, wet: 0.05 }).set({ wet: 0 });
       limiter.current = new Tone.Limiter(-6); // -6 dB threshold, prevents clipping
 
-      // Chain: Synth -> Delay -> Reverb -> Limiter -> Gain -> Destination
+      waveAnalyser.current = new Tone.Analyser('waveform', 1024);
+      // Analyser sizes must be powers of two — the Web Audio node rejects anything else.
+      fftAnalyser.current = new Tone.Analyser('fft', 128);
+
       synth.current = new Tone.PolySynth(Tone.Synth, {
         oscillator: { type: oscillatorType },
         envelope: { attack, decay, sustain, release }, // Use state variables
-      }).chain(delayEffect.current, reverbEffect.current, limiter.current, gainNode.current, Tone.Destination);
+      }).chain(
+        filterEffect.current,
+        crusherEffect.current,
+        driveEffect.current,
+        chorusEffect.current,
+        phaserEffect.current,
+        tremoloEffect.current,
+        delayEffect.current,
+        reverbEffect.current,
+        limiter.current,
+        gainNode.current,
+        Tone.Destination
+      );
+
+      gainNode.current.connect(waveAnalyser.current);
+      gainNode.current.connect(fftAnalyser.current);
 
       // Start Tone.js context on first user interaction
       const startAudio = () => {
@@ -189,20 +235,48 @@ const MaqamSynth = () => {
     }
   }, [oscillatorType, attack, decay, sustain, release]);
 
+  // --- Update Filter ---
+  useEffect(() => {
+    if (!filterEffect.current) return;
+    filterEffect.current.type = filterType;
+    filterEffect.current.frequency.value = filterFreq;
+    filterEffect.current.Q.value = filterQ;
+  }, [filterType, filterFreq, filterQ]);
+
+  // --- Update Colour (crush / drive / chorus) ---
+  useEffect(() => {
+    if (crusherEffect.current) crusherEffect.current.wet.value = crushAmount;
+    if (driveEffect.current) driveEffect.current.wet.value = driveAmount;
+    if (chorusEffect.current) chorusEffect.current.wet.value = chorusAmount;
+  }, [crushAmount, driveAmount, chorusAmount]);
+
+  // --- Update Motion (phaser / tremolo) ---
+  useEffect(() => {
+    if (phaserEffect.current) phaserEffect.current.wet.value = phaserAmount;
+    if (tremoloEffect.current) {
+      tremoloEffect.current.wet.value = tremoloAmount;
+      tremoloEffect.current.frequency.value = tremoloRate;
+    }
+  }, [phaserAmount, tremoloAmount, tremoloRate]);
+
   // --- Update Delay Effect ---
   useEffect(() => {
     if (delayEffect.current) {
       delayEffect.current.wet.value = delayAmount;
       delayEffect.current.feedback.value = delayFeedback;
+      delayEffect.current.delayTime.value = delayTime;
     }
-  }, [delayAmount, delayFeedback]);
+  }, [delayAmount, delayFeedback, delayTime]);
 
   // --- Update Reverb Effect ---
   useEffect(() => {
     if (reverbEffect.current) {
       reverbEffect.current.wet.value = reverbAmount;
+      /* Regenerating the impulse response is async; the node keeps playing the
+         previous one until the new one is ready. */
+      reverbEffect.current.decay = reverbDecay;
     }
-  }, [reverbAmount]);
+  }, [reverbAmount, reverbDecay]);
 
   // --- Play/Release Notes ---
   const triggerAttack = useCallback((frequency, key) => {
@@ -309,6 +383,8 @@ const MaqamSynth = () => {
       </header>
 
       <main className="synth-body">
+        <Scope waveform={waveAnalyser} fft={fftAnalyser} />
+
         <SynthControls
           currentMaqam={currentMaqam}
           setCurrentMaqam={setCurrentMaqam}
@@ -325,12 +401,34 @@ const MaqamSynth = () => {
           setSustain={setSustain}
           release={release}
           setRelease={setRelease}
+          filterType={filterType}
+          setFilterType={setFilterType}
+          filterFreq={filterFreq}
+          setFilterFreq={setFilterFreq}
+          filterQ={filterQ}
+          setFilterQ={setFilterQ}
+          crushAmount={crushAmount}
+          setCrushAmount={setCrushAmount}
+          driveAmount={driveAmount}
+          setDriveAmount={setDriveAmount}
+          chorusAmount={chorusAmount}
+          setChorusAmount={setChorusAmount}
+          phaserAmount={phaserAmount}
+          setPhaserAmount={setPhaserAmount}
+          tremoloAmount={tremoloAmount}
+          setTremoloAmount={setTremoloAmount}
+          tremoloRate={tremoloRate}
+          setTremoloRate={setTremoloRate}
           delayAmount={delayAmount}
           setDelayAmount={setDelayAmount}
           delayFeedback={delayFeedback}
           setDelayFeedback={setDelayFeedback}
+          delayTime={delayTime}
+          setDelayTime={setDelayTime}
           reverbAmount={reverbAmount}
           setReverbAmount={setReverbAmount}
+          reverbDecay={reverbDecay}
+          setReverbDecay={setReverbDecay}
         />
       </main>
 
