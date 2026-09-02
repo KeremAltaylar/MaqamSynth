@@ -66,6 +66,19 @@ const frequencyToNoteName = (frequency) => {
   return `${noteName}${octave}`;
 };
 
+/* Musical divisions shared by every time-based effect. `beats` is in quarter
+   notes: 4 is a whole note, 0.25 a sixteenth. */
+const RATE_DIVISIONS = [
+  { label: '1/1', beats: 4 },
+  { label: '1/2', beats: 2 },
+  { label: '1/4.', beats: 1.5 },
+  { label: '1/4', beats: 1 },
+  { label: '1/8.', beats: 0.75 },
+  { label: '1/8', beats: 0.5 },
+  { label: '1/8T', beats: 1 / 3 },
+  { label: '1/16', beats: 0.25 },
+];
+
 const MaqamSynth = () => {
   const synth = useRef(null);
   const gainNode = useRef(null);
@@ -103,10 +116,15 @@ const MaqamSynth = () => {
   const [chorusAmount, setChorusAmount] = useState(0);
   const [phaserAmount, setPhaserAmount] = useState(0);
   const [tremoloAmount, setTremoloAmount] = useState(0);
-  const [tremoloRate, setTremoloRate] = useState(6);
+  /* Every time-based effect is a division of the bar rather than a free number,
+     so nothing drifts against the sequencer when the tempo moves. Indices into
+     RATE_DIVISIONS below. */
+  const [tremoloDiv, setTremoloDiv] = useState(7);
+  const [phaserDiv, setPhaserDiv] = useState(0);
+  const [chorusDiv, setChorusDiv] = useState(3);
   const [delayAmount, setDelayAmount] = useState(0);
   const [delayFeedback, setDelayFeedback] = useState(0.5); // New: Delay Feedback
-  const [delayTime, setDelayTime] = useState(0.25);
+  const [delayDiv, setDelayDiv] = useState(5);
   const [reverbAmount, setReverbAmount] = useState(0);
   const [reverbDecay, setReverbDecay] = useState(1.5);
 
@@ -313,18 +331,16 @@ const MaqamSynth = () => {
     if (phaserEffect.current) phaserEffect.current.wet.value = phaserAmount;
     if (tremoloEffect.current) {
       tremoloEffect.current.wet.value = tremoloAmount;
-      tremoloEffect.current.frequency.value = tremoloRate;
     }
-  }, [phaserAmount, tremoloAmount, tremoloRate]);
+  }, [phaserAmount, tremoloAmount]);
 
   // --- Update Delay Effect ---
   useEffect(() => {
     if (delayEffect.current) {
       delayEffect.current.wet.value = delayAmount;
       delayEffect.current.feedback.value = delayFeedback;
-      delayEffect.current.delayTime.value = delayTime;
     }
-  }, [delayAmount, delayFeedback, delayTime]);
+  }, [delayAmount, delayFeedback]);
 
   // --- Update Reverb Effect ---
   useEffect(() => {
@@ -455,12 +471,20 @@ const PLAY_AHEAD = 0.008;
   }, [seqBpm]);
 
   /* Delay time and tremolo rate follow the tempo. A delay set by hand drifts
-     against the pattern the moment the tempo changes. */
+  /* One place derives every tempo-locked parameter. Delay is a time, the three
+     modulators are rates, so a division means seconds for one and hertz for the
+     others — beats * secondsPerBeat, or its reciprocal. */
   useEffect(() => {
     const beat = 60 / seqBpm;
-    if (delayEffect.current) delayEffect.current.delayTime.rampTo(beat / 2, 0.05);
-    if (tremoloEffect.current) tremoloEffect.current.frequency.rampTo(1 / beat, 0.05);
-  }, [seqBpm]);
+    const seconds = (i2) => RATE_DIVISIONS[i2].beats * beat;
+    const hertz = (i2) => 1 / seconds(i2);
+    /* Tone.FeedbackDelay allocates a one-second line by default, so a whole
+       note below 240bpm would exceed it and be clamped silently. */
+    if (delayEffect.current) delayEffect.current.delayTime.rampTo(Math.min(0.95, seconds(delayDiv)), 0.05);
+    if (tremoloEffect.current) tremoloEffect.current.frequency.rampTo(hertz(tremoloDiv), 0.05);
+    if (phaserEffect.current) phaserEffect.current.frequency.rampTo(hertz(phaserDiv), 0.05);
+    if (chorusEffect.current) chorusEffect.current.frequency.rampTo(hertz(chorusDiv), 0.05);
+  }, [seqBpm, delayDiv, tremoloDiv, phaserDiv, chorusDiv]);
 
   useEffect(() => {
     if (seqSynth.current) seqSynth.current.oscillator.type = seqWave;
@@ -650,14 +674,20 @@ const PLAY_AHEAD = 0.008;
           setPhaserAmount={setPhaserAmount}
           tremoloAmount={tremoloAmount}
           setTremoloAmount={setTremoloAmount}
-          tremoloRate={tremoloRate}
-          setTremoloRate={setTremoloRate}
+          tremoloDiv={tremoloDiv}
+          setTremoloDiv={setTremoloDiv}
+          phaserDiv={phaserDiv}
+          setPhaserDiv={setPhaserDiv}
+          chorusDiv={chorusDiv}
+          setChorusDiv={setChorusDiv}
           delayAmount={delayAmount}
           setDelayAmount={setDelayAmount}
           delayFeedback={delayFeedback}
           setDelayFeedback={setDelayFeedback}
-          delayTime={delayTime}
-          setDelayTime={setDelayTime}
+          delayDiv={delayDiv}
+          setDelayDiv={setDelayDiv}
+          divisions={RATE_DIVISIONS}
+          bpm={seqBpm}
           reverbAmount={reverbAmount}
           setReverbAmount={setReverbAmount}
           reverbDecay={reverbDecay}

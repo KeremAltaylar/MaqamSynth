@@ -26,6 +26,26 @@ const Segmented = ({ label, options, value, onChange }) => (
   </div>
 );
 
+/* A tempo-locked control. The knob picks a division; the readout shows what it
+   works out to, because "1/8" alone does not tell you whether the delay is
+   short or long until you also know the tempo. */
+const DivisionKnob = ({ id, label, value, onChange, divisions, bpm, asTime }) => {
+  const beats = divisions[value].beats;
+  const seconds = beats * (60 / bpm);
+  return (
+    <Knob
+      id={id}
+      label={label}
+      min={0}
+      max={divisions.length - 1}
+      step={1}
+      value={value}
+      display={`${divisions[value].label} · ${asTime ? `${seconds.toFixed(2)}s` : `${(1 / seconds).toFixed(2)}Hz`}`}
+      onChange={(v) => onChange(Math.round(v))}
+    />
+  );
+};
+
 /** Hz reads better as kHz once past a thousand. */
 const hz = (v) => (v >= 1000 ? `${(v / 1000).toFixed(1)}k` : `${Math.round(v)}`);
 
@@ -37,8 +57,10 @@ const SynthControls = ({
   filterType, setFilterType, filterFreq, setFilterFreq, filterQ, setFilterQ,
   crushAmount, setCrushAmount, driveAmount, setDriveAmount, chorusAmount, setChorusAmount,
   satLow, setSatLow, satHigh, setSatHigh,
-  phaserAmount, setPhaserAmount, tremoloAmount, setTremoloAmount, tremoloRate, setTremoloRate,
-  delayAmount, setDelayAmount, delayFeedback, setDelayFeedback, delayTime, setDelayTime,
+  phaserAmount, setPhaserAmount, tremoloAmount, setTremoloAmount,
+  tremoloDiv, setTremoloDiv, phaserDiv, setPhaserDiv, chorusDiv, setChorusDiv,
+  delayAmount, setDelayAmount, delayFeedback, setDelayFeedback, delayDiv, setDelayDiv,
+  divisions, bpm,
   reverbAmount, setReverbAmount, reverbDecay, setReverbDecay,
 }) => (
   <div className="synth-controls">
@@ -116,6 +138,8 @@ const SynthControls = ({
           value={driveAmount} display={driveAmount.toFixed(2)} onChange={setDriveAmount} />
         <Knob id="crush" label="Crush" min={0} max={1} step={0.01}
           value={crushAmount} display={crushAmount.toFixed(2)} onChange={setCrushAmount} />
+        <DivisionKnob id="chorus-rate" label="Chor rate" value={chorusDiv}
+          onChange={setChorusDiv} divisions={divisions} bpm={bpm} />
         <Knob id="sat-low" label="Sat low" min={0} max={1} step={0.01}
           value={satLow} display={satLow === 0 ? 'off' : satLow.toFixed(2)} onChange={setSatLow} />
         <Knob id="sat-high" label="Sat high" min={0} max={1} step={0.01}
@@ -130,8 +154,10 @@ const SynthControls = ({
           value={phaserAmount} display={phaserAmount.toFixed(2)} onChange={setPhaserAmount} />
         <Knob id="tremolo" label="Tremolo" min={0} max={1} step={0.01}
           value={tremoloAmount} display={tremoloAmount.toFixed(2)} onChange={setTremoloAmount} />
-        <Knob id="tremolo-rate" label="Rate" min={0.2} max={16} step={0.1}
-          value={tremoloRate} display={`${tremoloRate.toFixed(1)}Hz`} onChange={setTremoloRate} />
+        <DivisionKnob id="tremolo-rate" label="Trem rate" value={tremoloDiv}
+          onChange={setTremoloDiv} divisions={divisions} bpm={bpm} />
+        <DivisionKnob id="phaser-rate" label="Phase rate" value={phaserDiv}
+          onChange={setPhaserDiv} divisions={divisions} bpm={bpm} />
       </div>
     </section>
 
@@ -140,8 +166,8 @@ const SynthControls = ({
       <div className="panel-row">
         <Knob id="delay" label="Delay" min={0} max={1} step={0.01}
           value={delayAmount} display={delayAmount.toFixed(2)} onChange={setDelayAmount} />
-        <Knob id="delay-time" label="Time" min={0.02} max={1.2} step={0.01}
-          value={delayTime} display={`${delayTime.toFixed(2)}s`} onChange={setDelayTime} />
+        <DivisionKnob id="delay-time" label="Time" value={delayDiv}
+          onChange={setDelayDiv} divisions={divisions} bpm={bpm} asTime />
         <Knob id="delay-feedback" label="Feedback" min={0} max={0.95} step={0.01}
           value={delayFeedback} display={delayFeedback.toFixed(2)} onChange={setDelayFeedback} />
         <Knob id="reverb" label="Reverb" min={0} max={1} step={0.01}
