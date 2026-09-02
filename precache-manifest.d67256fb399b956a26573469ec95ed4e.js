@@ -1,10 +1,10 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "4e6fdd5ecd447dd1e5db578abd642c42",
+    "revision": "343625ce3d8cf95af6d31093595ac43b",
     "url": "/MaqamSynth/index.html"
   },
   {
-    "revision": "6857013c30b07a6fd082",
+    "revision": "c8d0ec2f186329c33af6",
     "url": "/MaqamSynth/static/css/main.2ad417d3.chunk.css"
   },
   {
@@ -12,8 +12,8 @@ self.__precacheManifest = (self.__precacheManifest || []).concat([
     "url": "/MaqamSynth/static/js/2.b47b3bed.chunk.js"
   },
   {
-    "revision": "6857013c30b07a6fd082",
-    "url": "/MaqamSynth/static/js/main.9e2cbd8e.chunk.js"
+    "revision": "c8d0ec2f186329c33af6",
+    "url": "/MaqamSynth/static/js/main.83f04b96.chunk.js"
   },
   {
     "revision": "3cee22269e5b47dbe0fd",

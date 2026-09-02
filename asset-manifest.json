@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/MaqamSynth/static/css/main.2ad417d3.chunk.css",
-    "main.js": "/MaqamSynth/static/js/main.9e2cbd8e.chunk.js",
-    "main.js.map": "/MaqamSynth/static/js/main.9e2cbd8e.chunk.js.map",
+    "main.js": "/MaqamSynth/static/js/main.83f04b96.chunk.js",
+    "main.js.map": "/MaqamSynth/static/js/main.83f04b96.chunk.js.map",
     "runtime~main.js": "/MaqamSynth/static/js/runtime~main.7d60cebc.js",
     "runtime~main.js.map": "/MaqamSynth/static/js/runtime~main.7d60cebc.js.map",
     "static/js/2.b47b3bed.chunk.js": "/MaqamSynth/static/js/2.b47b3bed.chunk.js",
     "static/js/2.b47b3bed.chunk.js.map": "/MaqamSynth/static/js/2.b47b3bed.chunk.js.map",
     "index.html": "/MaqamSynth/index.html",
-    "precache-manifest.1c045c3421f95845d5f983010f1cc013.js": "/MaqamSynth/precache-manifest.1c045c3421f95845d5f983010f1cc013.js",
+    "precache-manifest.d67256fb399b956a26573469ec95ed4e.js": "/MaqamSynth/precache-manifest.d67256fb399b956a26573469ec95ed4e.js",
     "service-worker.js": "/MaqamSynth/service-worker.js",
     "static/css/main.2ad417d3.chunk.css.map": "/MaqamSynth/static/css/main.2ad417d3.chunk.css.map"
   }
