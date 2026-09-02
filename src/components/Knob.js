@@ -35,9 +35,16 @@ const Knob = ({ id, label, value, min, max, step = 0.01, display, onChange, tone
   };
 
   const handlePointerDown = (e) => {
-    e.currentTarget.setPointerCapture(e.pointerId);
-    e.currentTarget.focus();
+    /* Record the drag before capturing: setPointerCapture throws on an unknown
+       pointer id, and losing the handler to that would leave a knob that
+       silently does nothing. Capture is an optimisation, not a requirement. */
     drag.current = { y: e.clientY, from: value };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch (err) {
+      /* no capture; the move handler still tracks while the pointer is down */
+    }
+    e.currentTarget.focus();
   };
 
   const handlePointerMove = (e) => {
