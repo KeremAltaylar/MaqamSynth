@@ -85,13 +85,13 @@ const SynthControls = ({
     <section className="panel panel-env">
       <h2>Envelope</h2>
       <div className="panel-row">
-        <Knob id="attack" label="Attack" min={0.001} max={2} step={0.001}
+        <Knob id="attack" label="Attack" min={0.005} max={2} step={0.001}
           value={attack} display={`${attack.toFixed(3)}s`} onChange={setAttack} />
         <Knob id="decay" label="Decay" min={0.01} max={2} step={0.01}
           value={decay} display={`${decay.toFixed(2)}s`} onChange={setDecay} />
         <Knob id="sustain" label="Sustain" min={0} max={1} step={0.01}
           value={sustain} display={sustain.toFixed(2)} onChange={setSustain} />
-        <Knob id="release" label="Release" min={0.01} max={3} step={0.01}
+        <Knob id="release" label="Release" min={0.03} max={3} step={0.01}
           value={release} display={`${release.toFixed(2)}s`} onChange={setRelease} />
       </div>
     </section>

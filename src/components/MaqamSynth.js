@@ -221,8 +221,14 @@ const MaqamSynth = () => {
       saturator.current = createSaturator({ lowCross: 180, highCross: 3200 });
 
       synth.current = new Tone.PolySynth(Tone.Synth, {
+        /* Tone allocates 32 voices by default and steals them abruptly once
+           they run out; a long release plus fast playing reaches that quickly,
+           and a stolen voice is a click. */
+        maxPolyphony: 24,
         oscillator: { type: oscillatorType },
-        envelope: { attack, decay, sustain, release }, // Use state variables
+        /* An exponential release falls to silence instead of stopping at a
+           level, which is what makes short notes tick as they end. */
+        envelope: { attack, decay, sustain, release, releaseCurve: 'exponential' },
       }).chain(
         filterEffect.current,
         crusherEffect.current,
@@ -243,7 +249,7 @@ const MaqamSynth = () => {
       seqGain.current = new Tone.Gain(0.5);
       seqSynth.current = new Tone.Synth({
         oscillator: { type: 'triangle' },
-        envelope: { attack: 0.01, decay: 0.2, sustain: 0.25, release: 0.3 },
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0.25, release: 0.3, releaseCurve: 'exponential' },
       }).connect(seqGain.current);
       seqGain.current.connect(filterEffect.current);
 
@@ -279,7 +285,10 @@ const MaqamSynth = () => {
     if (synth.current) {
       synth.current.set({
         oscillator: { type: oscillatorType },
-        envelope: { attack, decay, sustain, release },
+        /* The curve is repeated here on purpose: this set() runs on every knob
+           move, and leaving it out would quietly drop the smooth release the
+           moment anyone touched the envelope. */
+        envelope: { attack, decay, sustain, release, releaseCurve: 'exponential' },
       });
     }
   }, [oscillatorType, attack, decay, sustain, release]);
@@ -328,6 +337,14 @@ const MaqamSynth = () => {
   }, [reverbAmount, reverbDecay]);
 
   // --- Play/Release Notes ---
+/* Live notes are scheduled a few milliseconds ahead rather than at exactly the
+   current sample. Tone.now() adds the context's 100ms lookAhead, which was the
+   lag; but scheduling at precisely currentTime can land mid-render-block and
+   truncate the attack ramp into a step, which is a click. Eight milliseconds is
+   far below the ~20ms where lag becomes perceptible and gives every ramp a
+   clean start. */
+const PLAY_AHEAD = 0.008;
+
   const triggerAttack = useCallback((frequency, key) => {
     if (synth.current && !activeNotes.current.has(key)) {
       /* Tone.immediate(), not the default. triggerAttack with no time uses
@@ -337,7 +354,7 @@ const MaqamSynth = () => {
          as lag under a finger. Tone.immediate() is the current audio time with
          no lookahead, which is what a live note wants; the Transport keeps its
          own lookahead, so the sequencer stays rock solid. */
-      synth.current.triggerAttack(frequency, Tone.immediate());
+      synth.current.triggerAttack(frequency, Tone.immediate() + PLAY_AHEAD);
       activeNotes.current.set(key, frequency);
       setActiveFreqs(prev => {
         const s = new Set(prev);
@@ -350,7 +367,7 @@ const MaqamSynth = () => {
   const triggerRelease = useCallback((key) => {
     if (synth.current && activeNotes.current.has(key)) {
       const frequency = activeNotes.current.get(key);
-      synth.current.triggerRelease(frequency, Tone.immediate());
+      synth.current.triggerRelease(frequency, Tone.immediate() + PLAY_AHEAD);
       activeNotes.current.delete(key);
       setActiveFreqs(prev => {
         const s = new Set(prev);
