@@ -12,7 +12,7 @@ import React from 'react';
 const StepSequencer = ({
   steps, degrees, pattern, playhead, onToggle,
   running, onRun, bpm, setBpm, division, setDivision, DIVISIONS,
-  gate, setGate, level, setLevel, octave, setOctave, wave, setWave, onClear, onRandom,
+  gate, setGate, level, setLevel, intensity, setIntensity, octave, setOctave, wave, setWave, onClear, onRandom,
 }) => (
   <section className="seq" aria-label="Second voice sequencer">
     <div className="seq-head">
@@ -49,6 +49,14 @@ const StepSequencer = ({
             onChange={(e) => setGate(parseFloat(e.target.value))}
           />
           <b>{gate.toFixed(2)}</b>
+        </label>
+        <label className="seq-field">
+          <span>Intensity</span>
+          <input
+            type="range" min="0.05" max="1" step="0.01" value={intensity}
+            onChange={(e) => setIntensity(parseFloat(e.target.value))}
+          />
+          <b>{intensity.toFixed(2)}</b>
         </label>
         <label className="seq-field">
           <span>Level</span>

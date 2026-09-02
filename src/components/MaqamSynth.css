@@ -825,3 +825,153 @@ select {
 .synth-app.dock-open .knob { width: clamp(1.6rem, 2.6vh, 2.2rem); }
 .synth-app.dock-open .panel { padding: 0.4rem 0.55rem 0.45rem; }
 .synth-app.dock-open .panel > h2 { margin-bottom: 0.25rem; }
+
+/* ---- The sequencer fits rather than scrolls ----
+   Bounding the grid and letting it scroll hid degrees of the maqam, which is
+   the one thing this grid exists to show. The rows now divide whatever height
+   the sequencer is given, so a nine-degree Rast and a thirteen-degree Yeni
+   Sipihr both fit — the cells get shorter, nothing is hidden. */
+.seq {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.seq-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow: visible;
+}
+
+.seq-row { flex: 1 1 0; min-height: 0; }
+.seq-cell { height: 100%; min-height: 0.4rem; }
+
+/* The scope gives up its stretch to the sequencer: it is decoration, the grid
+   is the instrument. */
+.scope { flex: 0 0 auto; min-height: clamp(3rem, 9vh, 6rem); }
+.synth-app.dock-open .scope { min-height: 2.6rem; }
+.synth-app.dock-open .seq-grid { max-height: none; }
+
+/* ---- Tabs ----
+   Hidden on a desktop, where all three sections are shown at once. */
+.tabs { display: none; }
+
+@media (max-height: 560px), (max-width: 720px) {
+  .tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-left: auto;
+    margin-right: 0.5rem;
+  }
+  .tabs button {
+    font-family: var(--m-mono);
+    font-size: 0.54rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--m-dim);
+    background: transparent;
+    border: 1px solid var(--m-line);
+    border-radius: 999px;
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .tabs button[aria-selected='true'] {
+    color: var(--m-bg);
+    background: var(--m-sage);
+    border-color: var(--m-sage);
+  }
+
+  /* One view at a time. The scope stays in every view — it is how you see what
+     the instrument is doing, whichever section you are on. */
+  .synth-app[data-tab='controls'] .seq { display: none; }
+  .synth-app[data-tab='seq'] .synth-controls { display: none; }
+  .synth-app[data-tab='keys'] .synth-controls,
+  .synth-app[data-tab='keys'] .seq { display: none; }
+
+  /* The dock belongs to the keys view only, so it never covers another. */
+  .synth-app:not([data-tab='keys']) .keyboard-dock { display: none; }
+  .synth-app:not([data-tab='keys']).dock-open .synth-body { padding-bottom: 0.6rem; }
+  .synth-app[data-tab='keys'] .synth-body { padding-bottom: 0; }
+  .synth-app[data-tab='keys'] .scope { min-height: 2.4rem; }
+
+  /* The keys view gives the dock the whole body rather than pinning it. */
+  .synth-app[data-tab='keys'] .keyboard-dock {
+    position: static;
+    height: auto;
+    flex: 1 1 auto;
+    transform: none;
+    box-shadow: none;
+    border-top: 0;
+  }
+
+  .kbd-toggle { display: none; }
+  .seq-tools { gap: 0.35rem; }
+  .seq-field input[type='range'] { width: 3.2rem; }
+  .seq-head h2 { display: none; }
+}
+
+/* The scope's canvas is sized to the scope, so leaving the scope at height:auto
+   while it no longer stretches made the two chase each other — it grew to 621px
+   and squeezed the sequencer to 17. An explicit height breaks the loop. */
+.scope {
+  flex: 0 0 auto;
+  height: clamp(3rem, 9vh, 6rem);
+  min-height: 0;
+}
+.synth-app.dock-open .scope { height: 2.6rem; }
+
+/* The controls tab has to FIT on a rotated phone, not scroll — that is the
+   whole point of splitting the instrument into three views. Twenty knobs across
+   seven panels, sized down until they land on two rows. */
+@media (max-height: 560px) and (min-width: 640px) {
+  .synth-app[data-tab='controls'] .synth-controls {
+    gap: 0.3rem;
+    grid-auto-rows: auto;
+  }
+  .synth-app[data-tab='controls'] .panel { padding: 0.25rem 0.35rem 0.3rem; }
+  .synth-app[data-tab='controls'] .panel > h2 {
+    font-size: 0.46rem;
+    letter-spacing: 0.18em;
+    margin-bottom: 0.08rem;
+  }
+  .synth-app[data-tab='controls'] .knob { width: 1.35rem; }
+  .synth-app[data-tab='controls'] .knob-label,
+  .synth-app[data-tab='controls'] .knob-readout { font-size: 0.42rem; line-height: 1.1; }
+  .synth-app[data-tab='controls'] .knob-cell { gap: 0.02rem; }
+  .synth-app[data-tab='controls'] .segmented button { font-size: 0.44rem; padding: 0.15rem 0.25rem; }
+  .synth-app[data-tab='controls'] .field-select select { font-size: 0.6rem; padding: 0.2rem 0.3rem; }
+  .synth-app[data-tab='controls'] .field > label { font-size: 0.46rem; }
+  .synth-app[data-tab='controls'] .scope { height: 2.2rem; }
+  .synth-app[data-tab='controls'] .synth-body { gap: 0.3rem; padding: 0.3rem 0.5rem; }
+}
+
+/* A rotated phone is 832px wide, which trips the existing 860px rule and drops
+   the faceplate to six columns — half-width panels on five rows. In the
+   controls tab it stays twelve columns and two rows: the screen is short, not
+   narrow, and that is the dimension the layout should answer to. */
+@media (max-height: 560px) and (min-width: 640px) {
+  .synth-app[data-tab='controls'] .synth-controls { grid-template-columns: repeat(12, 1fr); }
+  .synth-app[data-tab='controls'] .panel-tuning { grid-column: span 3; }
+  .synth-app[data-tab='controls'] .panel-osc    { grid-column: span 2; }
+  .synth-app[data-tab='controls'] .panel-env    { grid-column: span 4; }
+  .synth-app[data-tab='controls'] .panel-filter { grid-column: span 3; }
+  .synth-app[data-tab='controls'] .panel-colour { grid-column: span 4; }
+  .synth-app[data-tab='controls'] .panel-motion { grid-column: span 3; }
+  .synth-app[data-tab='controls'] .panel-space  { grid-column: span 5; }
+}
+
+/* In a tab where the sequencer is hidden nothing absorbs the leftover height,
+   which left the faceplate floating above a blank half-screen. The scope takes
+   it. flex-basis 0 rather than auto — sizing it from its own canvas is what
+   made the two chase each other earlier. */
+@media (max-height: 560px), (max-width: 720px) {
+  .synth-app[data-tab='controls'] .scope,
+  .synth-app[data-tab='seq'] .scope {
+    flex: 1 1 0;
+    height: auto;
+    min-height: 2.2rem;
+  }
+}

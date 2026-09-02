@@ -129,12 +129,21 @@ const MaqamSynth = () => {
   const [seqDivision, setSeqDivision] = useState(2);
   const [seqGate, setSeqGate] = useState(0.5);
   const [seqLevel, setSeqLevel] = useState(0.5);
+  /* How hard the line is played, not how loud it is fed out — velocity, not
+     gain. At low intensity the voice is soft and the accents on downbeats are
+     slight; at full it hits hard and the downbeats bite. */
+  const [seqIntensity, setSeqIntensity] = useState(0.7);
   const [seqOctave, setSeqOctave] = useState(-1);
   const [seqWave, setSeqWave] = useState('triangle');
   const [seqStep, setSeqStep] = useState(-1);
   const [satLow, setSatLow] = useState(0);
   const [satHigh, setSatHigh] = useState(0);
   const [clipped, setClipped] = useState(false);
+
+  /* On a phone there is not room for the keys, the grid and the faceplate at
+     once, so they become three views. On a desktop all three are shown and the
+     tab bar is hidden — the same markup, laid out differently. */
+  const [mobileTab, setMobileTab] = useState('controls');
 
   const [keyboardOpen, setKeyboardOpen] = useState(() => window.innerWidth > 640);
   const baseOctaveKeys = React.useMemo(() => BASE_KEY_POOL.slice(0, currentMaqamScaleLength), [currentMaqamScaleLength]);
@@ -456,7 +465,11 @@ const MaqamSynth = () => {
           if (freq) {
             const shifted = freq * Math.pow(2, seqOctave);
             const stepSeconds = Tone.Time(SEQ_DIVISIONS[seqDivision].time).toSeconds();
-            seqSynth.current.triggerAttackRelease(shifted, stepSeconds * seqGate, time);
+            /* Downbeats carry a little more weight, scaled by intensity, so the
+               line has shape rather than a flat row of identical notes. */
+            const accent = i % 4 === 0 ? 1 : 0.78;
+            const velocity = Math.max(0.05, seqIntensity * accent);
+            seqSynth.current.triggerAttackRelease(shifted, stepSeconds * seqGate, time, velocity);
           }
         }
         Tone.Draw.schedule(() => setSeqStep(i), time);
@@ -472,7 +485,7 @@ const MaqamSynth = () => {
         sequence.current = null;
       }
     };
-  }, [seqPattern, seqDivision, seqGate, seqOctave, seqRunning, maqamNotes, SEQ_DIVISIONS]);
+  }, [seqPattern, seqDivision, seqGate, seqOctave, seqRunning, seqIntensity, maqamNotes, SEQ_DIVISIONS]);
 
   const toggleSequencer = useCallback(async () => {
     if (Tone.context.state !== 'running') await Tone.start();
@@ -538,12 +551,30 @@ const MaqamSynth = () => {
   }, [satHigh]);
 
   return (
-    <div className={`synth-app ${keyboardOpen ? 'dock-open' : ''}`}>
+    <div className={`synth-app ${keyboardOpen ? 'dock-open' : ''}`} data-tab={mobileTab}>
       <header className="synth-bar">
         <div className="brand">
           <span className="brand-mark">53-TET</span>
           {/* The `long` spans drop away on narrow screens, leaving "Maqam Synth". */}
           <h1><span className="long">Turkish </span>Maqam Synth<span className="long">esizer</span></h1>
+        </div>
+        <div className="tabs" role="tablist" aria-label="Sections">
+          {[['controls', 'Controls'], ['seq', 'Sequencer'], ['keys', 'Keys']].map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={mobileTab === id}
+              onClick={() => {
+                setMobileTab(id);
+                /* The keys view and the dock are the same thing: switching to
+                   it should open the dock, and leaving it should close it. */
+                setKeyboardOpen(id === 'keys');
+              }}
+            >
+              {label}
+            </button>
+          ))}
         </div>
         {clipped && <span className="clip-lamp">Clip</span>}
         <button
@@ -628,6 +659,8 @@ const MaqamSynth = () => {
           setGate={setSeqGate}
           level={seqLevel}
           setLevel={setSeqLevel}
+          intensity={seqIntensity}
+          setIntensity={setSeqIntensity}
           octave={seqOctave}
           setOctave={setSeqOctave}
           wave={seqWave}
