@@ -145,12 +145,16 @@
 /* A lit strip of glass, not a picture frame. It was taking ~130px of the most
    valuable vertical space on the page to show a mostly-flat line; the height it
    gave up is what lets all seven panels fit. */
+/* The scope takes whatever the panels don't need. Knobs are small, so the
+   control surface hugs its content and the leftover height goes to the glass —
+   the one element that actually rewards being bigger. */
 .scope {
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   width: 100%;
   max-width: 1240px;
   margin-inline: auto;
-  height: clamp(3.5rem, 9vh, 5.5rem);
+  height: auto;
+  min-height: clamp(5rem, 16vh, 13rem);
   border: 1px solid var(--m-line);
   border-radius: calc(var(--m-radius) / 2);
   background: var(--m-sunk);
@@ -179,11 +183,14 @@
    flowed, so the same panel sits in the same place every time you open it.
    That predictability is most of what makes hardware feel learnable. */
 .synth-controls {
-  flex: 1 1 auto;
+  /* Hug the knobs rather than stretching to fill — panels only need to be as
+     tall as their contents, and the height they give back goes to the scope. */
+  flex: 0 0 auto;
   min-height: 0;
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  grid-auto-rows: 1fr;
+  grid-auto-rows: auto;
+  align-items: stretch;
   gap: clamp(0.5rem, 1.2vw, 0.85rem);
   width: 100%;
   max-width: 1240px;
@@ -419,6 +426,15 @@ select {
   display: flex;
   align-items: stretch;
   gap: 0.4rem;
+}
+
+/* The register tag sits on the left of every row, which pushed the keys off
+   centre — equal margins on the dock, but not on the keyboard inside it. This
+   mirrors the tag's width on the right so the keys are symmetrical to both
+   sides of the window. */
+.octave-row::after {
+  content: '';
+  flex: 0 0 2.4rem;
 }
 
 .octave-tag {
