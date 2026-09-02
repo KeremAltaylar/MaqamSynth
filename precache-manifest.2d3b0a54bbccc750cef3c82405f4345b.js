@@ -1,19 +1,19 @@
 self.__precacheManifest = (self.__precacheManifest || []).concat([
   {
-    "revision": "c6f12f9304be25ebde87d7d07c270d8f",
+    "revision": "832c146fc49e5de09e5518f9041c932e",
     "url": "/MaqamSynth/index.html"
   },
   {
-    "revision": "411b38cc85b80a45db18",
-    "url": "/MaqamSynth/static/css/main.60cd24b3.chunk.css"
+    "revision": "dcfdca5281fa70e09f4c",
+    "url": "/MaqamSynth/static/css/main.2ad417d3.chunk.css"
   },
   {
     "revision": "27ac07d10e598b17131b",
     "url": "/MaqamSynth/static/js/2.409b3a2b.chunk.js"
   },
   {
-    "revision": "411b38cc85b80a45db18",
-    "url": "/MaqamSynth/static/js/main.6e9fbd97.chunk.js"
+    "revision": "dcfdca5281fa70e09f4c",
+    "url": "/MaqamSynth/static/js/main.21dabb19.chunk.js"
   },
   {
     "revision": "3cee22269e5b47dbe0fd",
