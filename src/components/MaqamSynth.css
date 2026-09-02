@@ -3,16 +3,28 @@
    warm/cool hues so each octave register is readable at a glance. */
 
 :root {
-  --m-bg: #141b18;
-  --m-panel: #1c2521;
-  --m-raised: #243029;
-  --m-line: rgba(188, 207, 182, 0.14);
-  --m-line-lit: rgba(188, 207, 182, 0.32);
+  /* Neutrals and accent are the portfolio's OKLCH ladder, not a parallel set of
+     hand-picked hexes — same values as the site's global.css, so the synth and
+     keremaltaylar.github.io stay one family. Lightness was derived from the
+     original hexes, so these render within a step per channel of what they
+     replace. Do not drop --m-faint below 71%: it fails AA against --m-raised. */
+  --m-sunk: oklch(18% 0.012 162);
+  --m-bg: oklch(24% 0.014 162);
+  --m-panel: oklch(28% 0.015 162);
+  --m-raised: oklch(33% 0.016 162);
+  --m-line: color-mix(in oklch, var(--m-sage) 16%, transparent);
+  --m-line-lit: color-mix(in oklch, var(--m-sage) 32%, transparent);
 
-  --m-ink: #e4e7e4;
-  --m-dim: #93a196;
+  --m-ink: oklch(92.5% 0.006 150);
+  --m-dim: oklch(78% 0.011 150);
+  --m-faint: oklch(71% 0.013 150);
 
-  --m-sage: #bccfb6; /* site accent */
+  --m-sage: oklch(83% 0.040 138); /* site accent */
+  --m-lamp: oklch(88% 0.085 140); /* lit indicators */
+
+  /* The three octave hues are instrument data, not brand colour — they exist so
+     the registers are distinguishable at a glance, so they stay their own hues
+     rather than joining the sage ladder. */
   --m-warm: #d9a441; /* base octave */
   --m-cool: #7fb2c4; /* octave up */
   --m-clay: #c9805a; /* octave down */
@@ -107,14 +119,20 @@
   color: var(--m-bg);
 }
 
-/* ---- Scrolling control area ---- */
+/* ---- Control area ----
+   An instrument shows its whole control surface. This used to scroll, which put
+   four of the seven panels below a fold — you could not see the effects chain
+   without scrolling a synth. It now divides the space it is given, and only
+   falls back to scrolling on screens too short to hold the surface honestly
+   (see the short-viewport rule further down). */
 
 .synth-body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  padding: clamp(0.85rem, 3vw, 1.75rem);
-  padding-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.55rem, 1.4vh, 0.9rem);
+  padding: clamp(0.6rem, 1.6vh, 1rem) clamp(0.85rem, 3vw, 1.75rem);
   transition: padding-bottom 0.28s ease;
 }
 
@@ -124,13 +142,19 @@
 
 /* ---- Oscilloscope ---- */
 
+/* A lit strip of glass, not a picture frame. It was taking ~130px of the most
+   valuable vertical space on the page to show a mostly-flat line; the height it
+   gave up is what lets all seven panels fit. */
 .scope {
+  flex: 0 0 auto;
+  width: 100%;
   max-width: 1240px;
-  margin: 0 auto clamp(0.7rem, 2vw, 1.1rem);
-  height: clamp(7rem, 20vh, 12rem);
+  margin-inline: auto;
+  height: clamp(3.5rem, 9vh, 5.5rem);
   border: 1px solid var(--m-line);
-  border-radius: var(--m-radius);
-  background: #0f1412;
+  border-radius: calc(var(--m-radius) / 2);
+  background: var(--m-sunk);
+  box-shadow: inset 0 1px 6px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   position: relative;
 }
@@ -151,25 +175,56 @@
   height: 100%;
 }
 
+/* Twelve columns, two rows, explicit spans — the surface is laid out, not
+   flowed, so the same panel sits in the same place every time you open it.
+   That predictability is most of what makes hardware feel learnable. */
 .synth-controls {
+  flex: 1 1 auto;
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
-  /* Panels hug their content instead of stretching to match the tallest in the
-     row, which otherwise leaves a lot of empty box under the short ones. */
-  align-items: start;
-  gap: clamp(0.7rem, 2vw, 1.1rem);
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: 1fr;
+  gap: clamp(0.5rem, 1.2vw, 0.85rem);
+  width: 100%;
   max-width: 1240px;
   margin-inline: auto;
 }
 
+.panel-tuning { grid-column: span 3; }
+.panel-osc    { grid-column: span 2; }
+.panel-env    { grid-column: span 4; }
+.panel-filter { grid-column: span 3; }
+.panel-colour { grid-column: span 3; }
+.panel-motion { grid-column: span 3; }
+.panel-space  { grid-column: span 6; }
+
+/* A row of controls across the panel, centred so the knobs line up with each
+   other across panel boundaries — a row of knobs at different heights is the
+   fastest way to make a faceplate look accidental. */
+.panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: clamp(0.35rem, 1vw, 0.7rem);
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .panel {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background:
-    linear-gradient(165deg, rgba(188, 207, 182, 0.045), transparent 42%),
+    linear-gradient(168deg, var(--m-raised), var(--m-panel) 62%),
     var(--m-panel);
   border: 1px solid var(--m-line);
-  border-radius: var(--m-radius);
-  padding: 1rem 1.05rem 1.15rem;
+  border-radius: calc(var(--m-radius) / 2);
+  padding: 0.55rem 0.7rem 0.6rem;
+  /* A faceplate catches light at its top edge and shadows into the one below. */
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.045),
+    0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 /* A short lit rule at the top left of each panel, so a grid of boxes reads as a
@@ -184,25 +239,16 @@
   background: var(--m-warm);
 }
 
+/* Engraved section label: cut into the plate rather than printed on it. */
 .panel > h2 {
-  margin: 0 0 0.9rem;
+  margin: 0 0 0.4rem;
   font-family: var(--m-mono);
-  font-size: 0.62rem;
+  font-size: 0.56rem;
   font-weight: 400;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--m-sage);
-}
-
-/* Envelope has four rows, so let it take two columns where there is room. */
-.panel.wide {
-  grid-column: span 2;
-}
-
-@media (max-width: 640px) {
-  .panel.wide {
-    grid-column: auto;
-  }
+  color: var(--m-faint);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 /* ---- Fields ---- */
@@ -488,4 +534,140 @@ select {
   .synth-body {
     transition: none;
   }
+}
+
+/* ---- Knobs ----
+   Rotary controls, but real sliders underneath: role="slider", arrow keys,
+   Home/End, Shift for fine adjustment. See Knob.js. */
+
+.knob-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.knob {
+  width: clamp(2.1rem, 3.4vh, 2.9rem);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  cursor: ns-resize;
+  touch-action: none;
+  /* The cap: lit from the upper left, seated in a shadow. */
+  background:
+    radial-gradient(circle at 34% 28%, var(--m-raised), var(--m-sunk) 78%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 1px 3px rgba(0, 0, 0, 0.45);
+  display: grid;
+  place-items: center;
+}
+
+.knob svg {
+  width: 118%;
+  height: 118%;
+  overflow: visible;
+}
+
+.knob-track {
+  fill: none;
+  stroke: var(--m-line);
+  stroke-width: 3;
+  transform: rotate(135deg);
+  transform-origin: 24px 24px;
+  stroke-dasharray: 84.82 113.1; /* 270 degrees of a r=18 circle */
+}
+
+.knob-arc {
+  fill: none;
+  stroke: var(--m-sage);
+  stroke-width: 3;
+  stroke-linecap: round;
+  transform: rotate(135deg);
+  transform-origin: 24px 24px;
+  transition: stroke 0.2s ease;
+}
+
+.knob-pointer {
+  stroke: var(--m-ink);
+  stroke-width: 2;
+  stroke-linecap: round;
+  transform-origin: 24px 24px;
+}
+
+.knob:hover .knob-arc,
+.knob:focus-visible .knob-arc {
+  stroke: var(--m-lamp);
+}
+
+.knob:focus-visible {
+  outline: 2px solid var(--m-lamp);
+  outline-offset: 3px;
+}
+
+.knob-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.06em;
+  color: var(--m-dim);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.knob-readout {
+  font-family: var(--m-mono);
+  font-size: 0.6rem;
+  color: var(--m-sage);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+/* Waveform picker stacks in its narrow panel instead of squeezing four words
+   onto one line. */
+/* Four waveform names cannot share one line in a two-column panel, and the base
+   .segmented is a nowrap flex row, so this wraps them into a 2x2 block. */
+.segmented-stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.segmented-stack button {
+  flex: 1 1 42%;
+  min-width: 0;
+  padding-inline: 0.2rem;
+  font-size: 0.55rem;
+}
+
+.field-select {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+/* ---- Short viewports ----
+   Below this the surface cannot be shown honestly at a usable knob size, so it
+   goes back to scrolling rather than shrinking into illegibility. */
+@media (max-height: 620px) {
+  .synth-body {
+    overflow-y: auto;
+  }
+  .synth-controls {
+    grid-auto-rows: auto;
+  }
+  .panel-space,
+  .panel-env {
+    grid-column: span 6;
+  }
+}
+
+@media (max-width: 860px) {
+  .synth-controls {
+    grid-template-columns: repeat(6, 1fr);
+    grid-auto-rows: auto;
+  }
+  .panel-tuning, .panel-osc, .panel-filter,
+  .panel-colour, .panel-motion { grid-column: span 3; }
+  .panel-env, .panel-space { grid-column: span 6; }
+  .synth-body { overflow-y: auto; }
 }
