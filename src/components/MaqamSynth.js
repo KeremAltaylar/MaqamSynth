@@ -330,7 +330,14 @@ const MaqamSynth = () => {
   // --- Play/Release Notes ---
   const triggerAttack = useCallback((frequency, key) => {
     if (synth.current && !activeNotes.current.has(key)) {
-      synth.current.triggerAttack(frequency);
+      /* Tone.immediate(), not the default. triggerAttack with no time uses
+         Tone.now(), which is currentTime PLUS context.lookAhead — 0.1s on the
+         'interactive' hint — so every played note was scheduled a tenth of a
+         second into the future. That is inaudible as a glitch and very audible
+         as lag under a finger. Tone.immediate() is the current audio time with
+         no lookahead, which is what a live note wants; the Transport keeps its
+         own lookahead, so the sequencer stays rock solid. */
+      synth.current.triggerAttack(frequency, Tone.immediate());
       activeNotes.current.set(key, frequency);
       setActiveFreqs(prev => {
         const s = new Set(prev);
@@ -343,7 +350,7 @@ const MaqamSynth = () => {
   const triggerRelease = useCallback((key) => {
     if (synth.current && activeNotes.current.has(key)) {
       const frequency = activeNotes.current.get(key);
-      synth.current.triggerRelease(frequency);
+      synth.current.triggerRelease(frequency, Tone.immediate());
       activeNotes.current.delete(key);
       setActiveFreqs(prev => {
         const s = new Set(prev);
