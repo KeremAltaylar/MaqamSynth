@@ -3,6 +3,8 @@ import * as Tone from 'tone';
 import SynthControls from './SynthControls';
 import MaqamNoteDisplay from './MaqamNoteDisplay';
 import Scope from './Scope';
+import StepSequencer from './StepSequencer';
+import { createSaturator } from '../audio/saturator';
 import './MaqamSynth.css';
 
 // --- Global Maqam Data (constants) ---
@@ -76,6 +78,12 @@ const MaqamSynth = () => {
   const delayEffect = useRef(null);
   const reverbEffect = useRef(null);
   const limiter = useRef(null); // Add a limiter to prevent clipping
+  const saturator = useRef(null);
+  /* The second voice: its own synth and its own Tone.Sequence, fed through the
+     same effect chain so both voices share the room. */
+  const seqSynth = useRef(null);
+  const seqGain = useRef(null);
+  const sequence = useRef(null);
   const waveAnalyser = useRef(null);
   const fftAnalyser = useRef(null);
 
@@ -110,6 +118,24 @@ const MaqamSynth = () => {
   const [activeFreqs, setActiveFreqs] = useState(new Set());
   /* Open by default where there is room for it, closed on a phone so the
      controls are the first thing you see. */
+  /* ---- Second voice ----
+     Steps hold a degree index into the current maqam, or -1 for a rest, so a
+     pattern survives a change of maqam and is reinterpreted in the new tuning
+     rather than being wrong in the old one. */
+  const SEQ_STEPS = 16;
+  const [seqPattern, setSeqPattern] = useState(() => new Array(SEQ_STEPS).fill(-1));
+  const [seqRunning, setSeqRunning] = useState(false);
+  const [seqBpm, setSeqBpm] = useState(96);
+  const [seqDivision, setSeqDivision] = useState(2);
+  const [seqGate, setSeqGate] = useState(0.5);
+  const [seqLevel, setSeqLevel] = useState(0.5);
+  const [seqOctave, setSeqOctave] = useState(-1);
+  const [seqWave, setSeqWave] = useState('triangle');
+  const [seqStep, setSeqStep] = useState(-1);
+  const [satLow, setSatLow] = useState(0);
+  const [satHigh, setSatHigh] = useState(0);
+  const [clipped, setClipped] = useState(false);
+
   const [keyboardOpen, setKeyboardOpen] = useState(() => window.innerWidth > 640);
   const baseOctaveKeys = React.useMemo(() => BASE_KEY_POOL.slice(0, currentMaqamScaleLength), [currentMaqamScaleLength]);
   const octaveDownKeys = React.useMemo(() => DOWN_KEY_POOL.slice(0, Math.min(currentMaqamScaleLength, DOWN_KEY_POOL.length)), [currentMaqamScaleLength]);
@@ -181,6 +207,10 @@ const MaqamSynth = () => {
       // Analyser sizes must be powers of two — the Web Audio node rejects anything else.
       fftAnalyser.current = new Tone.Analyser('fft', 128);
 
+      /* Two-band saturator just before the master, so it colours everything
+         both voices play and still sits inside the limiter's reach. */
+      saturator.current = createSaturator({ lowCross: 180, highCross: 3200 });
+
       synth.current = new Tone.PolySynth(Tone.Synth, {
         oscillator: { type: oscillatorType },
         envelope: { attack, decay, sustain, release }, // Use state variables
@@ -193,10 +223,20 @@ const MaqamSynth = () => {
         tremoloEffect.current,
         delayEffect.current,
         reverbEffect.current,
-        limiter.current,
-        gainNode.current,
-        Tone.Destination
+        saturator.current.input
       );
+      saturator.current.output.chain(limiter.current, gainNode.current, Tone.Destination);
+
+      /* The second voice is monophonic and deliberately plainer than the
+         keyboard voice: it holds a line under what you play rather than
+         competing with it. It joins the chain at the head, so both voices
+         share the filter, colour, motion and space settings. */
+      seqGain.current = new Tone.Gain(0.5);
+      seqSynth.current = new Tone.Synth({
+        oscillator: { type: 'triangle' },
+        envelope: { attack: 0.01, decay: 0.2, sustain: 0.25, release: 0.3 },
+      }).connect(seqGain.current);
+      seqGain.current.connect(filterEffect.current);
 
       gainNode.current.connect(waveAnalyser.current);
       gainNode.current.connect(fftAnalyser.current);
@@ -364,6 +404,139 @@ const MaqamSynth = () => {
     };
   }, [maqamNotes, currentMaqam, triggerAttack, triggerRelease, currentMaqamScaleLength, baseOctaveKeys, octaveDownKeys, octaveUpKeys]);
 
+  /* ---- Second voice sequencing ----
+     Tone's Transport is already a lookahead scheduler against the audio clock,
+     so the sequence is sample-accurate without hand-rolling one. Rates are
+     divisions of the bar rather than free numbers, which is what keeps the
+     delay and the tremolo locked to the pattern when the tempo moves. */
+  const SEQ_DIVISIONS = React.useMemo(() => ([
+    { label: '1/4', time: '4n' },
+    { label: '1/8', time: '8n' },
+    { label: '1/16', time: '16n' },
+    { label: '1/8T', time: '8t' },
+    { label: '1/16T', time: '16t' },
+  ]), []);
+
+  useEffect(() => {
+    Tone.Transport.bpm.rampTo(seqBpm, 0.05);
+  }, [seqBpm]);
+
+  /* Delay time and tremolo rate follow the tempo. A delay set by hand drifts
+     against the pattern the moment the tempo changes. */
+  useEffect(() => {
+    const beat = 60 / seqBpm;
+    if (delayEffect.current) delayEffect.current.delayTime.rampTo(beat / 2, 0.05);
+    if (tremoloEffect.current) tremoloEffect.current.frequency.rampTo(1 / beat, 0.05);
+  }, [seqBpm]);
+
+  useEffect(() => {
+    if (seqSynth.current) seqSynth.current.oscillator.type = seqWave;
+  }, [seqWave]);
+
+  useEffect(() => {
+    if (seqGain.current) seqGain.current.gain.rampTo(seqLevel, 0.03);
+  }, [seqLevel]);
+
+  /* The sequence is rebuilt when anything it reads changes. Tone.Sequence
+     schedules ahead, so the callback receives the exact time to play at — the
+     React state update for the playhead is deliberately pushed out with
+     Tone.Draw so the UI follows the audio rather than leading it. */
+  useEffect(() => {
+    if (sequence.current) {
+      sequence.current.stop();
+      sequence.current.dispose();
+      sequence.current = null;
+    }
+    const indices = Array.from({ length: SEQ_STEPS }, (_, i) => i);
+    sequence.current = new Tone.Sequence(
+      (time, i) => {
+        const degree = seqPattern[i];
+        if (degree >= 0 && seqSynth.current) {
+          const freq = maqamNotes[degree];
+          if (freq) {
+            const shifted = freq * Math.pow(2, seqOctave);
+            const stepSeconds = Tone.Time(SEQ_DIVISIONS[seqDivision].time).toSeconds();
+            seqSynth.current.triggerAttackRelease(shifted, stepSeconds * seqGate, time);
+          }
+        }
+        Tone.Draw.schedule(() => setSeqStep(i), time);
+      },
+      indices,
+      SEQ_DIVISIONS[seqDivision].time
+    );
+    if (seqRunning) sequence.current.start(0);
+    return () => {
+      if (sequence.current) {
+        sequence.current.stop();
+        sequence.current.dispose();
+        sequence.current = null;
+      }
+    };
+  }, [seqPattern, seqDivision, seqGate, seqOctave, seqRunning, maqamNotes, SEQ_DIVISIONS]);
+
+  const toggleSequencer = useCallback(async () => {
+    if (Tone.context.state !== 'running') await Tone.start();
+    if (seqRunning) {
+      Tone.Transport.stop();
+      setSeqRunning(false);
+      setSeqStep(-1);
+    } else {
+      Tone.Transport.start();
+      setSeqRunning(true);
+    }
+  }, [seqRunning]);
+
+  /* One degree per step: clicking the cell that is already set clears it, so a
+     step holds a single pitch and the grid cannot end up ambiguous. */
+  const toggleSeqCell = useCallback((step, degree) => {
+    setSeqPattern((prev) => {
+      const next = prev.slice();
+      next[step] = next[step] === degree ? -1 : degree;
+      return next;
+    });
+  }, []);
+
+  const clearSequence = useCallback(() => setSeqPattern(new Array(SEQ_STEPS).fill(-1)), []);
+
+  /* Weighted rather than uniform: rests are common, downbeats are likelier to
+     sound, and low degrees are favoured so the line sits under the keyboard
+     voice instead of fighting it. */
+  const randomSequence = useCallback(() => {
+    const span = Math.max(1, Math.min(maqamNotes.length, currentMaqamScaleLength));
+    setSeqPattern(Array.from({ length: SEQ_STEPS }, (_, i) => {
+      const strength = i % 4 === 0 ? 0.8 : i % 2 === 0 ? 0.45 : 0.25;
+      if (Math.random() > strength) return -1;
+      const bias = Math.pow(Math.random(), 1.6);
+      return Math.floor(bias * span);
+    }));
+  }, [maqamNotes.length, currentMaqamScaleLength]);
+
+  /* Clip watch on the master: read the analyser rather than guess from faders. */
+  useEffect(() => {
+    let raf;
+    const tick = () => {
+      const buf = waveAnalyser.current && waveAnalyser.current.getValue();
+      if (buf) {
+        let peak = 0;
+        for (let i = 0; i < buf.length; i++) {
+          const v = Math.abs(buf[i]);
+          if (v > peak) peak = v;
+        }
+        setClipped((was) => (peak >= 0.99 ? true : was && peak > 0.9));
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
+  useEffect(() => {
+    if (saturator.current) saturator.current.setLow(satLow);
+  }, [satLow]);
+  useEffect(() => {
+    if (saturator.current) saturator.current.setHigh(satHigh);
+  }, [satHigh]);
+
   return (
     <div className={`synth-app ${keyboardOpen ? 'dock-open' : ''}`}>
       <header className="synth-bar">
@@ -372,6 +545,7 @@ const MaqamSynth = () => {
           {/* The `long` spans drop away on narrow screens, leaving "Maqam Synth". */}
           <h1><span className="long">Turkish </span>Maqam Synth<span className="long">esizer</span></h1>
         </div>
+        {clipped && <span className="clip-lamp">Clip</span>}
         <button
           type="button"
           className="kbd-toggle"
@@ -411,6 +585,10 @@ const MaqamSynth = () => {
           setCrushAmount={setCrushAmount}
           driveAmount={driveAmount}
           setDriveAmount={setDriveAmount}
+          satLow={satLow}
+          setSatLow={setSatLow}
+          satHigh={satHigh}
+          setSatHigh={setSatHigh}
           chorusAmount={chorusAmount}
           setChorusAmount={setChorusAmount}
           phaserAmount={phaserAmount}
@@ -429,6 +607,33 @@ const MaqamSynth = () => {
           setReverbAmount={setReverbAmount}
           reverbDecay={reverbDecay}
           setReverbDecay={setReverbDecay}
+        />
+        <StepSequencer
+          steps={SEQ_STEPS}
+          degrees={maqamNotes.slice(0, currentMaqamScaleLength).map((f, i) => ({
+            index: i,
+            name: f ? frequencyToNoteName(f) : String(i + 1),
+          }))}
+          pattern={seqPattern}
+          playhead={seqRunning ? seqStep : -1}
+          onToggle={toggleSeqCell}
+          running={seqRunning}
+          onRun={toggleSequencer}
+          bpm={seqBpm}
+          setBpm={setSeqBpm}
+          division={seqDivision}
+          setDivision={setSeqDivision}
+          DIVISIONS={SEQ_DIVISIONS}
+          gate={seqGate}
+          setGate={setSeqGate}
+          level={seqLevel}
+          setLevel={setSeqLevel}
+          octave={seqOctave}
+          setOctave={setSeqOctave}
+          wave={seqWave}
+          setWave={setSeqWave}
+          onClear={clearSequence}
+          onRandom={randomSequence}
         />
       </main>
 

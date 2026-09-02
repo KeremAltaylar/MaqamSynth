@@ -36,6 +36,7 @@ const SynthControls = ({
   attack, setAttack, decay, setDecay, sustain, setSustain, release, setRelease,
   filterType, setFilterType, filterFreq, setFilterFreq, filterQ, setFilterQ,
   crushAmount, setCrushAmount, driveAmount, setDriveAmount, chorusAmount, setChorusAmount,
+  satLow, setSatLow, satHigh, setSatHigh,
   phaserAmount, setPhaserAmount, tremoloAmount, setTremoloAmount, tremoloRate, setTremoloRate,
   delayAmount, setDelayAmount, delayFeedback, setDelayFeedback, delayTime, setDelayTime,
   reverbAmount, setReverbAmount, reverbDecay, setReverbDecay,
@@ -115,6 +116,10 @@ const SynthControls = ({
           value={driveAmount} display={driveAmount.toFixed(2)} onChange={setDriveAmount} />
         <Knob id="crush" label="Crush" min={0} max={1} step={0.01}
           value={crushAmount} display={crushAmount.toFixed(2)} onChange={setCrushAmount} />
+        <Knob id="sat-low" label="Sat low" min={0} max={1} step={0.01}
+          value={satLow} display={satLow === 0 ? 'off' : satLow.toFixed(2)} onChange={setSatLow} />
+        <Knob id="sat-high" label="Sat high" min={0} max={1} step={0.01}
+          value={satHigh} display={satHigh === 0 ? 'off' : satHigh.toFixed(2)} onChange={setSatHigh} />
       </div>
     </section>
 
